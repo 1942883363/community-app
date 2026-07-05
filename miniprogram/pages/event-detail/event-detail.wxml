@@ -1,0 +1,72 @@
+<view class="page" wx:if="{{event.title}}">
+  <view class="detail-header">
+    <image
+      wx:if="{{event.cover}}"
+      class="detail-cover"
+      src="{{event.cover}}"
+      mode="aspectFill"
+    />
+    <view wx:else class="detail-cover-placeholder">
+      <text>🎉</text>
+    </view>
+    <view class="detail-header-info">
+      <text class="detail-title">{{event.title}}</text>
+      <view class="detail-meta-row flex-row">
+        <text class="meta-icon">📅</text>
+        <text class="meta-text">{{event.start_time}} ~ {{event.end_time}}</text>
+      </view>
+      <view class="detail-meta-row flex-row">
+        <text class="meta-icon">📍</text>
+        <text class="meta-text">{{event.location}}</text>
+      </view>
+      <view class="detail-meta-row flex-row">
+        <text class="meta-icon">👥</text>
+        <text class="meta-text">已报名 {{event.current_participants}}{{event.max_participants > 0 ? '/' + event.max_participants : ''}} 人</text>
+      </view>
+      <view wx:if="{{event.organizer}}" class="detail-meta-row flex-row">
+        <text class="meta-icon">🏢</text>
+        <text class="meta-text">主办方: {{event.organizer}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="detail-body card">
+    <rich-text nodes="{{event.content || '暂无详情介绍'}}" class="rich-content" />
+  </view>
+
+  <view class="register-section">
+    <view class="register-info">
+      <text wx:if="{{registered}}" class="text-primary">✅ 您已成功报名</text>
+      <text wx:elif="{{event.status === 'closed'}}" class="text-secondary">活动已结束</text>
+    </view>
+    <view
+      class="btn-primary register-btn {{registered || event.status === 'closed' ? 'disabled' : ''}}"
+      bindtap="onRegister"
+    >
+      <text>{{registered ? '已报名' : (event.status === 'closed' ? '已结束' : '立即报名')}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{showForm}}" class="register-form-overlay" catchtap="onCloseForm">
+    <view class="register-form" catchtap="noop">
+      <text class="form-title">📋 活动报名</text>
+      <view class="form-item">
+        <text class="form-label">姓名</text>
+        <input class="form-input" placeholder="请输入您的姓名" value="{{formName}}" bindinput="onNameInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">手机号</text>
+        <input class="form-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{formPhone}}" bindinput="onPhoneInput" />
+      </view>
+      <view class="form-btns">
+        <view class="form-btn cancel" bindtap="onCloseForm">取消</view>
+        <view class="form-btn submit" bindtap="onSubmitRegistration">提交</view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view wx:else class="empty-state">
+  <text class="icon">📄</text>
+  <text class="text">加载中...</text>
+</view>

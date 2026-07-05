@@ -1,0 +1,90 @@
+1.bcrypt 密码哈希：把算法版本、加密轮数、随机盐值、密码哈希全部编码进了一个字符串。这样做的好处是：
+
+每次加密结果都不同（因为随机盐值每次不一样）
+不需要单独存盐值（盐值已经嵌在哈希里了）
+验证时自动解析（调用 bcrypt.checkpw(明文密码, 哈希) 即可，不需要你手动处理）
+2.在navicat修改密码：用命令生成哈希（推荐）
+在终端里运行：
+
+cd d:\实习项目\backend
+python -c "import bcrypt; print(bcrypt.hashpw(b'你的新密码', bcrypt.gensalt()).decode())"
+会输出一串如 $2b$12$... 的字符串，复制这串值到 Navicat 中 admin_users 表的 password_hash 字段直接粘贴保存即可。
+3.启动项目：
+
+## 🚀 手动启动流程
+
+打开 **3 个终端窗口**，按顺序执行：
+
+---
+
+### 终端 ① —— 启动后端 API
+
+```powershell
+cd d:\实习项目\backend
+
+# 仅首次执行：安装依赖
+pip install -r requirements.txt
+
+# 仅首次执行：建表 + 种子数据
+mysql -u root -p < sql\init.sql
+python seed.py
+
+# 每次启动：运行后端（端口 8000）
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+看到这行表示成功：
+
+```
+Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+```
+
+---
+
+### 终端 ② —— 启动管理后台
+
+```powershell
+cd d:\实习项目\admin-frontend
+
+# 仅首次执行：安装依赖
+npm install
+
+# 每次启动：运行前端（端口 5173）
+npm run dev
+```
+
+看到这行表示成功：
+
+```
+➜  Local:   http://localhost:5173/
+```
+
+浏览器打开 `http://localhost:5173`，用 `admin` / `admin123` 登录。
+
+---
+
+### 终端 ③ —— 微信小程序
+
+无需终端。打开微信开发者工具 → 导入 `d:\实习项目\miniprogram` → 点击「编译」。
+
+手机测试点击「预览」生成二维码，微信扫码即可。
+
+---
+
+## 🔧 常用命令速查
+
+| 场景 | 命令 |
+|------|------|
+| 重置数据库 | `mysql -u root -p < d:\实习项目\backend\sql\init.sql` |
+| 重新导入种子数据 | `cd d:\实习项目\backend && python seed.py` |
+| 导入成信大演示数据 | `cd d:\实习项目\backend && python seed_cuit.py` |
+| 修改管理员密码 | `python -c "import bcrypt; print(bcrypt.hashpw(b'新密码', bcrypt.gensalt()).decode())"` 然后替换 Navicat 中 `admin_users.password_hash` |
+| 手机 IP 变化后更新 | 修改 `miniprogram\utils\config.js` 中 `BASE_URL` 的 IP |
+
+---
+
+## ⚠️ 注意事项
+
+1. **MySQL 必须已启动**——建表和数据脚本依赖它，先检查服务是否运行
+2. **手机热点 IP 可能变化**——每次重新连热点后，终端运行 `ipconfig` 查看当前 IPv4，更新 `config.js` 中的 IP
+3. **不要关终端**——后端和管理前台需要在各自终端中保持运行，`Ctrl+C` 停止

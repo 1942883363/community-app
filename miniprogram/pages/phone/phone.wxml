@@ -1,0 +1,62 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索电话..."
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+      />
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearSearch">✕</text>
+    </view>
+  </view>
+
+  <scroll-view class="tab-scroll" scroll-x enable-flex>
+    <view class="tab-item {{currentCategory === '' ? 'active' : ''}}" data-category="" bindtap="onCategoryTap">
+      <text>全部</text>
+    </view>
+    <view
+      class="tab-item {{currentCategory === item.id ? 'active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="id"
+      data-category="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <block wx:if="{{phoneList.length > 0}}">
+    <view
+      class="phone-card card"
+      wx:for="{{phoneList}}"
+      wx:key="id"
+    >
+      <view class="flex-between">
+        <view class="flex-column phone-info">
+          <text class="phone-name">{{item.name}}</text>
+          <text class="phone-number text-primary">{{item.phone}}</text>
+          <text wx:if="{{item.remark}}" class="phone-remark text-secondary">{{item.remark}}</text>
+        </view>
+        <view class="call-btn" data-phone="{{item.phone}}" bindtap="onCall">
+          <text class="call-icon">📞</text>
+          <text class="call-text">拨打</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="loading-more" wx:if="{{hasMore}}">
+      <text>{{loadingMore ? '加载中...' : '上拉加载更多'}}</text>
+    </view>
+    <view class="loading-more" wx:else>
+      <text>— 没有更多了 —</text>
+    </view>
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="icon">📭</text>
+    <text class="text">暂未收录电话</text>
+  </view>
+</view>

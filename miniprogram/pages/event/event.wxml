@@ -1,0 +1,44 @@
+<view class="page">
+  <block wx:if="{{eventList.length > 0}}">
+    <view
+      class="event-card card"
+      wx:for="{{eventList}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onEventTap"
+    >
+      <view class="event-body flex-row">
+        <image
+          wx:if="{{item.cover}}"
+          class="event-cover"
+          src="{{item.cover}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view wx:else class="event-cover-placeholder">
+          <text>🎉</text>
+        </view>
+        <view class="event-info flex-column">
+          <text class="event-title text-ellipsis-2">{{item.title}}</text>
+          <view class="event-meta flex-column">
+            <text class="event-meta-item">📅 {{item.start_time}}</text>
+            <text class="event-meta-item">📍 {{item.location}}</text>
+            <text class="event-meta-item">👥 {{item.current_participants}}/{{item.max_participants > 0 ? item.max_participants : '不限'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="loading-more" wx:if="{{hasMore}}">
+      <text>{{loadingMore ? '加载中...' : '上拉加载更多'}}</text>
+    </view>
+    <view class="loading-more" wx:else>
+      <text>— 没有更多了 —</text>
+    </view>
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="icon">📭</text>
+    <text class="text">暂无活动</text>
+  </view>
+</view>

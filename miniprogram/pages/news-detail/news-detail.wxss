@@ -1,0 +1,71 @@
+.page {
+  padding-bottom: 120rpx;
+}
+
+.detail-header {
+  padding: 32rpx 24rpx 24rpx;
+  background: #ffffff;
+}
+
+.detail-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+
+.detail-meta {
+  gap: 24rpx;
+  flex-wrap: wrap;
+}
+
+.detail-body {
+  margin: 16rpx 24rpx;
+}
+
+.rich-content {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333333;
+  word-break: break-all;
+}
+
+.detail-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  padding: 16rpx 48rpx;
+  border-top: 2rpx solid #f0f0f0;
+  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.footer-action {
+  padding: 8rpx 0;
+}
+
+.action-icon {
+  font-size: 36rpx;
+  margin-right: 8rpx;
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.share-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.share-btn::after {
+  border: none;
+}

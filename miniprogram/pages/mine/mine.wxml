@@ -1,0 +1,89 @@
+<view class="page">
+  <view class="user-header">
+    <view class="user-avatar">👤</view>
+    <text class="user-id">用户 {{userId}}</text>
+  </view>
+
+  <view class="record-tabs card">
+    <view class="tabs flex-row">
+      <view class="tab-item {{activeTab === 'liked' ? 'active' : ''}}" data-tab="liked" bindtap="onTabChange">
+        <text>❤️ 点赞</text>
+      </view>
+      <view class="tab-item {{activeTab === 'registered' ? 'active' : ''}}" data-tab="registered" bindtap="onTabChange">
+        <text>📋 报名</text>
+      </view>
+      <view class="tab-item {{activeTab === 'feedback' ? 'active' : ''}}" data-tab="feedback" bindtap="onTabChange">
+        <text>💬 反馈</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'liked'}}" class="tab-content">
+    <block wx:if="{{likedList.length > 0}}">
+      <view
+        class="list-card card"
+        wx:for="{{likedList}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onLikedNewsTap"
+      >
+        <text class="list-title text-ellipsis">{{item.title}}</text>
+        <text class="text-secondary">👍 已点赞</text>
+      </view>
+    </block>
+    <view wx:else class="empty-state">
+      <text class="icon">❤️</text>
+      <text class="text">暂无点赞记录</text>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'registered'}}" class="tab-content">
+    <block wx:if="{{registeredList.length > 0}}">
+      <view
+        class="list-card card"
+        wx:for="{{registeredList}}"
+        wx:key="id"
+      >
+        <text class="list-title">{{item.title}}</text>
+        <view class="flex-between">
+          <text class="text-secondary">{{item.time || ''}}</text>
+          <text class="tag">已报名</text>
+        </view>
+      </view>
+    </block>
+    <view wx:else class="empty-state">
+      <text class="icon">📋</text>
+      <text class="text">暂无报名记录</text>
+    </view>
+  </view>
+
+  <view wx:if="{{activeTab === 'feedback'}}" class="tab-content">
+    <block wx:if="{{feedbackList.length > 0}}">
+      <view
+        class="list-card card"
+        wx:for="{{feedbackList}}"
+        wx:key="id"
+      >
+        <text class="list-title text-ellipsis-2">{{item.content}}</text>
+        <view class="flex-between">
+          <text class="text-secondary">{{item.created_at || ''}}</text>
+          <text class="tag">{{item.status === 'replied' ? '已回复' : '待处理'}}</text>
+        </view>
+      </view>
+    </block>
+    <view wx:else class="empty-state">
+      <text class="icon">💬</text>
+      <text class="text">暂无反馈记录</text>
+    </view>
+  </view>
+
+  <view class="more-section card" bindtap="onGoFeedback">
+    <view class="flex-between">
+      <view class="flex-row">
+        <text class="more-emoji">💬</text>
+        <text class="more-text">意见反馈</text>
+      </view>
+      <text class="text-secondary">›</text>
+    </view>
+  </view>
+</view>

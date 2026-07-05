@@ -1,0 +1,70 @@
+<view class="page">
+  <swiper class="banner-swiper" indicator-dots autoplay interval="4000" duration="500" circular>
+    <block wx:for="{{banners}}" wx:key="id">
+      <swiper-item>
+        <view class="banner-item" style="background-color: {{item.color}};">
+          <text class="banner-icon">{{item.icon}}</text>
+          <text class="banner-title">{{item.title}}</text>
+        </view>
+      </swiper-item>
+    </block>
+  </swiper>
+
+  <view class="service-grid">
+    <view
+      class="service-item"
+      wx:for="{{services}}"
+      wx:key="id"
+      data-path="{{item.path}}"
+      bindtap="onServiceTap"
+    >
+      <view class="service-icon" style="background-color: {{item.color}}20;">
+        <text class="service-emoji">{{item.icon}}</text>
+      </view>
+      <text class="service-name">{{item.name}}</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header flex-between">
+      <text class="section-title">📰 最新资讯</text>
+      <text class="text-secondary" bindtap="onMoreNews">查看更多 ›</text>
+    </view>
+
+    <block wx:if="{{newsList.length > 0}}">
+      <view
+        class="news-card card"
+        wx:for="{{newsList}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onNewsTap"
+      >
+        <view class="news-card-body flex-row">
+          <view class="news-info flex-column">
+            <text class="news-title text-ellipsis-2">{{item.title}}</text>
+            <text class="news-summary text-ellipsis-2">{{item.summary}}</text>
+            <view class="news-meta flex-row">
+              <text class="text-secondary">{{item.created_at}}</text>
+              <text class="text-secondary">👁 {{item.views}}</text>
+              <text class="text-secondary">👍 {{item.likes}}</text>
+            </view>
+          </view>
+          <image
+            wx:if="{{item.cover}}"
+            class="news-cover"
+            src="{{item.cover}}"
+            mode="aspectFill"
+          />
+          <view wx:else class="news-cover-placeholder">
+            <text>📰</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <view wx:else class="empty-state">
+      <text class="icon">📭</text>
+      <text class="text">暂无资讯</text>
+    </view>
+  </view>
+</view>

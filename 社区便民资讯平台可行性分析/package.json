@@ -1,0 +1,16 @@
+{
+  "name": "community-report-generator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "generate": "npx tsx generate-report.ts"
+  },
+  "dependencies": {
+    "docx": "^9.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.23.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,34 @@
+<view class="page" wx:if="{{news.title}}">
+  <view class="detail-header">
+    <text class="detail-title">{{news.title}}</text>
+    <view class="detail-meta flex-row">
+      <text class="text-secondary">{{news.created_at}}</text>
+      <text wx:if="{{news.source}}" class="text-secondary">来源: {{news.source}}</text>
+      <text class="text-secondary">👁 {{news.views}} 阅读</text>
+    </view>
+  </view>
+
+  <view class="detail-body card">
+    <rich-text nodes="{{news.content}}" class="rich-content" />
+  </view>
+
+  <view class="detail-footer flex-between">
+    <view class="footer-action flex-row" bindtap="onToggleLike">
+      <text class="action-icon">{{isLiked ? '❤️' : '🤍'}}</text>
+      <text class="action-text">{{isLiked ? '已赞' : '点赞'}} {{news.likes}}</text>
+    </view>
+    <view class="footer-action flex-row">
+      <text class="action-icon">⭐</text>
+      <text class="action-text">收藏</text>
+    </view>
+    <button class="footer-action flex-row share-btn" open-type="share">
+      <text class="action-icon">📤</text>
+      <text class="action-text">分享</text>
+    </button>
+  </view>
+</view>
+
+<view wx:else class="empty-state">
+  <text class="icon">📄</text>
+  <text class="text">加载中...</text>
+</view>

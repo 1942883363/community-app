@@ -1,0 +1,122 @@
+.location-card {
+  margin: 16rpx 24rpx;
+}
+
+.location-header {
+  margin-bottom: 12rpx;
+}
+
+.location-title {
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.location-action {
+  padding: 8rpx 16rpx;
+  background: #f0f0f0;
+  border-radius: 8rpx;
+}
+
+.location-text {
+  font-size: 26rpx;
+  color: #333333;
+  line-height: 1.5;
+}
+
+.line-search {
+  margin: 0 24rpx 16rpx;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  padding: 8rpx 24rpx;
+}
+
+.search-icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  min-height: 40rpx;
+}
+
+.section {
+  padding: 0 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16rpx;
+}
+
+.station-card {
+  margin-bottom: 16rpx;
+  padding: 20rpx;
+}
+
+.station-emoji {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+}
+
+.station-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4rpx;
+}
+
+.station-lines {
+  margin-top: 12rpx;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.line-tag {
+  display: inline-block;
+  background: #1677ff;
+  color: #ffffff;
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.line-card {
+  margin-bottom: 16rpx;
+}
+
+.line-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1677ff;
+  margin-bottom: 12rpx;
+}
+
+.line-stops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.line-stop {
+  font-size: 24rpx;
+  color: #666666;
+  background: #f5f5f5;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.station-info {
+  gap: 12rpx;
+}

@@ -1,0 +1,50 @@
+<view class="page" wx:if="{{business.name}}">
+  <swiper wx:if="{{images.length > 0}}" class="swiper" indicator-dots autoplay circular>
+    <block wx:for="{{images}}" wx:key="*this">
+      <swiper-item>
+        <image class="swiper-image" src="{{item}}" mode="aspectFill" />
+      </swiper-item>
+    </block>
+  </swiper>
+  <view wx:else class="cover-placeholder">
+    <text>🏪</text>
+  </view>
+
+  <view class="info-section">
+    <text class="business-name">{{business.name}}</text>
+    <view class="meta-item flex-row">
+      <text>📍</text>
+      <text class="meta-text">{{business.address}}</text>
+    </view>
+    <view wx:if="{{business.phone}}" class="meta-item flex-row" bindtap="onCall">
+      <text>📞</text>
+      <text class="meta-text text-primary">{{business.phone}}</text>
+      <text class="call-tip">（点击拨打）</text>
+    </view>
+    <view wx:if="{{business.business_hours}}" class="meta-item flex-row">
+      <text>🕐</text>
+      <text class="meta-text">{{business.business_hours}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{business.description}}" class="desc-section card">
+    <text class="section-title">商家简介</text>
+    <text class="desc-text">{{business.description}}</text>
+  </view>
+
+  <view class="action-bar">
+    <view class="action-btn flex-row" bindtap="onCall">
+      <text class="action-btn-icon">📞</text>
+      <text class="action-btn-text">拨打电话</text>
+    </view>
+    <view class="action-btn action-btn-primary flex-row" bindtap="onOpenLocation">
+      <text class="action-btn-icon">🗺️</text>
+      <text class="action-btn-text">查看地图</text>
+    </view>
+  </view>
+</view>
+
+<view wx:else class="empty-state">
+  <text class="icon">📄</text>
+  <text class="text">加载中...</text>
+</view>

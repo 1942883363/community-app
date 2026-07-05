@@ -1,0 +1,46 @@
+<view class="page">
+  <view class="form-section card">
+    <view class="form-item">
+      <text class="form-label">反馈内容 *</text>
+      <textarea
+        class="form-textarea"
+        placeholder="请详细描述您的意见或建议..."
+        value="{{content}}"
+        bindinput="onContentInput"
+        maxlength="500"
+      />
+      <text class="form-count">{{content.length}}/500</text>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">联系方式</text>
+      <input
+        class="form-input"
+        placeholder="请输入手机号或邮箱（选填）"
+        value="{{contact}}"
+        bindinput="onContactInput"
+        type="text"
+      />
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">上传图片（选填）</text>
+      <view class="upload-area">
+        <block wx:for="{{images}}" wx:key="*this">
+          <view class="upload-item">
+            <image class="upload-image" src="{{item}}" mode="aspectFill" />
+            <view class="upload-remove" data-index="{{index}}" bindtap="onRemoveImage">✕</view>
+          </view>
+        </block>
+        <view wx:if="{{images.length < 3}}" class="upload-btn" bindtap="onChooseImage">
+          <text class="upload-icon">📷</text>
+          <text class="upload-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="btn-primary submit-btn" bindtap="onSubmit">
+      <text>提交反馈</text>
+    </view>
+  </view>
+</view>

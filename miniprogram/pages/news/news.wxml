@@ -1,0 +1,74 @@
+<view class="page">
+  <view class="search-bar">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索资讯..."
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearch"
+      />
+      <text wx:if="{{keyword}}" class="search-clear" bindtap="onClearSearch">✕</text>
+    </view>
+  </view>
+
+  <scroll-view class="tab-scroll" scroll-x enable-flex>
+    <view class="tab-item {{currentCategory === '' ? 'active' : ''}}" data-category="" bindtap="onCategoryTap">
+      <text>全部</text>
+    </view>
+    <view
+      class="tab-item {{currentCategory === item.id ? 'active' : ''}}"
+      wx:for="{{categories}}"
+      wx:key="id"
+      data-category="{{item.id}}"
+      bindtap="onCategoryTap"
+    >
+      <text>{{item.name}}</text>
+    </view>
+  </scroll-view>
+
+  <block wx:if="{{newsList.length > 0}}">
+    <view
+      class="news-card card"
+      wx:for="{{newsList}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onNewsTap"
+    >
+      <view class="news-card-body flex-row">
+        <view class="news-info flex-column">
+          <text class="news-title text-ellipsis-2">{{item.title}}</text>
+          <text class="news-summary text-ellipsis-2">{{item.summary}}</text>
+          <view class="news-meta flex-row">
+            <text class="text-secondary">{{item.created_at}}</text>
+            <text class="text-secondary">👁 {{item.views}}</text>
+            <text class="text-secondary">👍 {{item.likes}}</text>
+          </view>
+        </view>
+        <image
+          wx:if="{{item.cover}}"
+          class="news-cover"
+          src="{{item.cover}}"
+          mode="aspectFill"
+          lazy-load
+        />
+        <view wx:else class="news-cover-placeholder">
+          <text>📰</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="loading-more" wx:if="{{hasMore}}">
+      <text>{{loadingMore ? '加载中...' : '上拉加载更多'}}</text>
+    </view>
+    <view class="loading-more" wx:else>
+      <text>— 没有更多了 —</text>
+    </view>
+  </block>
+
+  <view wx:else class="empty-state">
+    <text class="icon">📭</text>
+    <text class="text">暂无资讯</text>
+  </view>
+</view>

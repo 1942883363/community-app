@@ -1,0 +1,34 @@
+name: bus-metro-query
+version: 1.0.0
+description: 公交地铁查询技能，对接高德公交API，查询周边公共交通线路、到站时间等实时数据
+author: community-info-platform
+tags:
+  - transit
+  - bus
+  - metro
+  - public-transport
+triggers:
+  - 公交
+  - 地铁
+  - 公交查询
+  - 地铁查询
+  - 公交线路
+  - 地铁线路
+  - 到站时间
+  - 公交站
+  - 地铁站
+  - 公共交通
+  - 周边公交
+  - 周边地铁
+  - 实时公交
+  - 查询公交
+  - 查询地铁
+  - 怎么坐车
+  - 坐几路
+  - 交通出行
+config:
+  amap_api_key:
+    type: string
+    description: 高德地图Web服务API Key
+    required: true
+    default: ""
