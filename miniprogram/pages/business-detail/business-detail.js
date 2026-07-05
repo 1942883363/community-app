@@ -22,30 +22,16 @@ Page({
   },
 
   loadDetail(id) {
-    api.get(`/business/${id}`).then(res => {
-      const item = res.data || res
+    api.get(`/businesses/${id}`).then(res => {
       const business = {
-        id: item.ID || item.id,
-        name: item.name,
-        address: item.address || item.location || '',
-        phone: item.phone || '',
-        description: item.description || item.intro || '',
-        business_hours: item.business_hours || item.working_hours || '',
-        latitude: item.latitude || item.lat || 0,
-        longitude: item.longitude || item.lng || 0,
-        images: item.images || item.photos || []
+        id: res.id,
+        name: res.name,
+        address: res.address || '',
+        phone: res.phone || '',
+        description: res.description || '',
+        business_hours: res.business_hours || '',
+        logo: res.logo || ''
       }
-
-      let images = []
-      if (item.cover_image || item.image || item.cover) {
-        images.push(item.cover_image || item.image || item.cover)
-      }
-      if (business.images && business.images.length > 0) {
-        images = images.concat(business.images)
-      }
-
-      this.setData({ business, images })
-    }).catch(() => {
       wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },

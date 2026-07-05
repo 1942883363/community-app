@@ -25,20 +25,14 @@ Page({
 
   loadDetail(id) {
     api.get(`/news/${id}`).then(res => {
-      const item = res.data || res
       const news = {
-        id: item.ID || item.id,
-        title: item.title,
-        content: item.content || '',
-        cover: item.cover_image || item.cover || '',
-        source: item.source || '',
-        views: item.view_count || item.views || 0,
-        likes: item.like_count || item.likes || 0,
-        created_at: this.formatTime(item.created_at || item.publish_time)
-      }
-
-      if (!news.content && item.content_html) {
-        news.content = item.content_html
+        id: res.id,
+        title: res.title,
+        content: res.content || '',
+        cover: res.cover_image || '',
+        views: res.view_count || 0,
+        likes: res.like_count || 0,
+        created_at: this.formatTime(res.created_at)
       }
 
       this.setData({ news })

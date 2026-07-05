@@ -25,28 +25,29 @@ Page({
   },
 
   loadCategories() {
-    api.get('/business/categories').then(res => {
-      const cats = res.list || res || []
+    api.get('/business-categories').then(res => {
+      const cats = res.items || res || []
       this.setData({
-        categories: cats.map(c => ({ id: c.ID || c.id, name: c.name }))
+        categories: cats.map(c => ({ id: c.id, name: c.name }))
       })
     }).catch(() => {})
   },
 
   loadBusinessList(append = false) {
     const { page, pageSize, currentCategory, keyword } = this.data
-    const params = { page, pageSize }
+    const params = { page, page_size: pageSize }
     if (currentCategory) params.category_id = currentCategory
     if (keyword) params.keyword = keyword
 
-    return api.get('/business', params).then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+    return api.get('/businesses', params).then(res => {
+      const items = res.items || res || []
+      const list = items.map(item => ({
+        id: item.id,
         name: item.name,
-        image: item.image || item.cover_image || '',
-        address: item.address || item.location || '',
+        image: item.logo || '',
+        address: item.address || '',
         phone: item.phone || '',
-        description: item.description || item.intro || ''
+        description: item.description || ''
       }))
 
       const businessList = append ? this.data.businessList.concat(list) : list

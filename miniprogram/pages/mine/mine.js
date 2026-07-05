@@ -36,12 +36,12 @@ Page({
       return
     }
 
-    api.get('/news', { page: 1, pageSize: 100 }).then(res => {
-      const allNews = (res.list || (res.data && res.data.list) || res || [])
+    api.get('/news', { page: 1, page_size: 100 }).then(res => {
+      const allNews = res.items || res || []
       const liked = allNews
-        .filter(item => likedIds.indexOf(Number(item.ID || item.id)) !== -1)
+        .filter(item => likedIds.indexOf(Number(item.id)) !== -1)
         .map(item => ({
-          id: item.ID || item.id,
+          id: item.id,
           title: item.title
         }))
       this.setData({ likedList: liked })
@@ -53,10 +53,10 @@ Page({
 
   loadRegistered() {
     api.get('/events/my').then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
-        title: item.title || item.event_title || `活动 #${item.event_id || item.id}`,
-        time: item.created_at || item.register_time || ''
+      const list = (res || []).map(item => ({
+        id: item.id,
+        title: item.title || `活动 #${item.id}`,
+        time: item.created_at || ''
       }))
       this.setData({ registeredList: list })
     }).catch(() => {
@@ -66,10 +66,10 @@ Page({
 
   loadFeedback() {
     api.get('/feedback/my').then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+      const list = (res || []).map(item => ({
+        id: item.id,
         content: item.content,
-        status: item.status || 'pending',
+        status: item.status,
         created_at: item.created_at || ''
       }))
       this.setData({ feedbackList: list })

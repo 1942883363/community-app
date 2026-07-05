@@ -9,7 +9,7 @@
 cd d:\实习项目\backend
 python -c "import bcrypt; print(bcrypt.hashpw(b'你的新密码', bcrypt.gensalt()).decode())"
 会输出一串如 $2b$12$... 的字符串，复制这串值到 Navicat 中 admin_users 表的 password_hash 字段直接粘贴保存即可。
-3.启动项目：
+3.启动项目：（
 
 ## 🚀 手动启动流程
 
@@ -88,3 +88,9 @@ npm run dev
 1. **MySQL 必须已启动**——建表和数据脚本依赖它，先检查服务是否运行
 2. **手机热点 IP 可能变化**——每次重新连热点后，终端运行 `ipconfig` 查看当前 IPv4，更新 `config.js` 中的 IP
 3. **不要关终端**——后端和管理前台需要在各自终端中保持运行，`Ctrl+C` 停止
+）
+4.提交修改的项目至GitHub:(前提。在该项目的根目录文件夹里打开终端)
+git add .
+git commit -m "这里写本次修改内容"
+git push
+

@@ -36,21 +36,23 @@ Page({
 
   loadNews() {
     const limit = 5
-    return api.get('/news', { page: 1, pageSize: limit })
+    return api.get('/news', { page: 1, page_size: limit })
       .then(res => {
-        const list = (res.list || (res.data && res.data.list) || res || []).slice(0, 5)
+        console.log('首页资讯返回:', JSON.stringify(res))
+        const list = (res.items || res || []).slice(0, limit)
         const newsList = list.map(item => ({
-          id: item.ID || item.id,
+          id: item.id,
           title: item.title,
           summary: item.summary || '',
-          cover: item.cover_image || item.cover || '',
-          views: item.view_count || item.views || 0,
-          likes: item.like_count || item.likes || 0,
-          created_at: item.created_at || item.publish_time || ''
+          cover: item.cover_image || '',
+          views: item.view_count || 0,
+          likes: item.like_count || 0,
+          created_at: item.created_at || ''
         }))
         this.setData({ newsList, loading: false })
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('首页加载失败:', err)
         this.setData({ loading: false })
       })
   },

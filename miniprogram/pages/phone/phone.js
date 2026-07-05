@@ -25,26 +25,27 @@ Page({
   },
 
   loadCategories() {
-    api.get('/phone/categories').then(res => {
-      const cats = res.list || res || []
+    api.get('/phone-categories').then(res => {
+      const cats = res.items || res || []
       this.setData({
-        categories: cats.map(c => ({ id: c.ID || c.id, name: c.name }))
+        categories: cats.map(c => ({ id: c.id, name: c.name }))
       })
     }).catch(() => {})
   },
 
   loadPhoneList(append = false) {
     const { page, pageSize, currentCategory, keyword } = this.data
-    const params = { page, pageSize }
+    const params = { page, page_size: pageSize }
     if (currentCategory) params.category_id = currentCategory
     if (keyword) params.keyword = keyword
 
-    return api.get('/phone', params).then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+    return api.get('/phone-entries', params).then(res => {
+      const items = res.items || res || []
+      const list = items.map(item => ({
+        id: item.id,
         name: item.name,
-        phone: item.phone || item.number || '',
-        remark: item.remark || item.description || ''
+        phone: item.phone || '',
+        remark: item.description || ''
       }))
 
       const phoneList = append ? this.data.phoneList.concat(list) : list

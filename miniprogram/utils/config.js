@@ -1,4 +1,4 @@
-const BASE_URL = 'http://10.19.240.102/api'
+const BASE_URL = 'http://192.168.43.34:8000/api'
 
 module.exports = {
   BASE_URL

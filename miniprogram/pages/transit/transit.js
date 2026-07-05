@@ -60,9 +60,10 @@ Page({
   },
 
   loadNearbyStations(lat, lng) {
-    api.get('/transit/nearby', { lat, lng, radius: 1000 }).then(res => {
-      const stations = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+    api.get('/transit/nearby', { longitude: lng, latitude: lat, radius: 1000 }).then(res => {
+      const src = res || []
+      const stations = src.map(item => ({
+        id: item.id,
         name: item.name,
         distance: item.distance || '',
         lines: item.lines || item.routes || []
@@ -116,9 +117,10 @@ Page({
     const keyword = this.data.lineKeyword.trim()
     if (!keyword) return
 
-    api.get('/transit/lines', { keyword }).then(res => {
-      const lineList = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+    api.get('/transit/lines', { city: '成都', line_name: keyword }).then(res => {
+      const src = res || []
+      const lineList = src.map(item => ({
+        id: item.id,
         name: item.name,
         stops: item.stops || item.stations || [],
         start_time: item.start_time || '',

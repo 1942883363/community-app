@@ -27,23 +27,18 @@ Page({
 
   loadDetail(id) {
     api.get(`/events/${id}`).then(res => {
-      const item = res.data || res
       const event = {
-        id: item.ID || item.id,
-        title: item.title,
-        content: item.content || item.description || '',
-        cover: item.cover_image || item.cover || '',
-        start_time: this.formatTime(item.start_time || item.start_date),
-        end_time: this.formatTime(item.end_time || item.end_date),
-        location: item.location || item.address || '',
-        max_participants: item.max_participants || item.max_people || 0,
-        current_participants: item.current_participants || item.registered_count || 0,
-        status: item.status || 'open',
-        organizer: item.organizer || ''
-      }
-
-      if (!event.content && item.content_html) {
-        event.content = item.content_html
+        id: res.id,
+        title: res.title,
+        content: res.content || '',
+        cover: res.cover_image || '',
+        start_time: this.formatTime(res.event_date || res.start_time),
+        end_time: this.formatTime(res.end_time),
+        location: res.address || '',
+        max_participants: res.max_participants || 0,
+        enrolled_count: res.enrolled_count || 0,
+        status: res.status,
+        organizer: res.organizer || ''
       }
 
       this.setData({ event })
@@ -53,8 +48,9 @@ Page({
   },
 
   checkRegistration(id) {
-    api.get(`/events/${id}/registration`).then(res => {
-      if (res && res.registered) {
+    api.get(`/events/my`).then(res => {
+      const events = res || []
+      if (events.some(e => e.id == id)) {
         this.setData({ registered: true })
       }
     }).catch(() => {})
@@ -62,11 +58,11 @@ Page({
 
   onRegister() {
     const { event } = this.data
-    if (event.status === 'closed') {
+    if (event.status === 3 || event.status === 'closed') {
       wx.showToast({ title: '活动已结束', icon: 'none' })
       return
     }
-    if (event.max_participants > 0 && event.current_participants >= event.max_participants) {
+    if (event.max_participants > 0 && event.enrolled_count >= event.max_participants) {
       wx.showToast({ title: '名额已满', icon: 'none' })
       return
     }
@@ -102,8 +98,8 @@ Page({
     }
 
     api.post(`/events/${eventId}/register`, {
-      name: formName.trim(),
-      phone: formPhone.trim()
+      user_name: formName.trim(),
+      user_phone: formPhone.trim()
     }).then(() => {
       wx.showToast({ title: '报名成功', icon: 'success' })
       this.setData({
@@ -111,7 +107,7 @@ Page({
         registered: true,
         formName: '',
         formPhone: '',
-        'event.current_participants': (this.data.event.current_participants || 0) + 1
+        'event.enrolled_count': (this.data.event.enrolled_count || 0) + 1
       })
     }).catch(() => {
       wx.showToast({ title: '报名失败，请重试', icon: 'none' })

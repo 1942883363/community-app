@@ -78,8 +78,9 @@ export default function BusinessManage() {
         page_size: pageSize,
         category_id: selectedCategory.id,
       })
-      setBusinesses(res.data.items)
-      setTotal(res.data.total)
+      const list = Array.isArray(res.data) ? res.data : []
+      setBusinesses(list)
+      setTotal(list.length)
     } catch {
       message.error('获取商家列表失败')
     } finally {

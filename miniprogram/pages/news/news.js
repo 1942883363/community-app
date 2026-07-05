@@ -30,29 +30,30 @@ Page({
   },
 
   loadCategories() {
-    api.get('/news/categories').then(res => {
-      const cats = res.list || res || []
+    api.get('/categories').then(res => {
+      const cats = res || []
       this.setData({
-        categories: cats.map(c => ({ id: c.ID || c.id, name: c.name }))
+        categories: cats.map(c => ({ id: c.id, name: c.name }))
       })
     }).catch(() => {})
   },
 
   loadNews(append = false) {
     const { page, pageSize, currentCategory, keyword } = this.data
-    const params = { page, pageSize }
+    const params = { page, page_size: pageSize }
     if (currentCategory) params.category_id = currentCategory
     if (keyword) params.keyword = keyword
 
     return api.get('/news', params).then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+      const items = res.items || res || []
+      const list = items.map(item => ({
+        id: item.id,
         title: item.title,
         summary: item.summary || '',
-        cover: item.cover_image || item.cover || '',
-        views: item.view_count || item.views || 0,
-        likes: item.like_count || item.likes || 0,
-        created_at: this.formatTime(item.created_at || item.publish_time)
+        cover: item.cover_image || '',
+        views: item.view_count || 0,
+        likes: item.like_count || 0,
+        created_at: this.formatTime(item.created_at)
       }))
 
       const newsList = append ? this.data.newsList.concat(list) : list

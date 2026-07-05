@@ -144,7 +144,8 @@ export default function EventManage() {
     setRegLoading(true)
     try {
       const res = await eventApi.getRegistrations(eventId)
-      setRegistrations(res.data.items)
+      const list = Array.isArray(res.data) ? res.data : []
+      setRegistrations(list)
     } catch {
       message.error('获取报名列表失败')
     } finally {

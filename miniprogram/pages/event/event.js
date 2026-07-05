@@ -28,16 +28,17 @@ Page({
   loadEvents(append = false) {
     const { page, pageSize } = this.data
 
-    return api.get('/events', { page, pageSize }).then(res => {
-      const list = (res.list || (res.data && res.data.list) || res || []).map(item => ({
-        id: item.ID || item.id,
+    return api.get('/events', { page, page_size: pageSize }).then(res => {
+      const items = res.items || res || []
+      const list = items.map(item => ({
+        id: item.id,
         title: item.title,
-        cover: item.cover_image || item.cover || '',
-        start_time: this.formatTime(item.start_time || item.start_date),
-        location: item.location || item.address || '',
-        max_participants: item.max_participants || item.max_people || 0,
-        current_participants: item.current_participants || item.registered_count || 0,
-        status: item.status || 'open'
+        cover: item.cover_image || '',
+        start_time: this.formatTime(item.event_date || item.start_time),
+        location: item.address || '',
+        max_participants: item.max_participants || 0,
+        enrolled_count: item.enrolled_count || 0,
+        status: item.status
       }))
 
       const eventList = append ? this.data.eventList.concat(list) : list
@@ -57,8 +58,8 @@ Page({
   },
 
   getStatusText(item) {
-    if (item.status === 'closed') return { text: '已结束', cls: 'status-closed' }
-    if (item.max_participants > 0 && item.current_participants >= item.max_participants) {
+    if (item.status === 3) return { text: '已结束', cls: 'status-closed' }
+    if (item.max_participants > 0 && item.enrolled_count >= item.max_participants) {
       return { text: '已满额', cls: 'status-full' }
     }
     return { text: '报名中', cls: 'status-open' }
