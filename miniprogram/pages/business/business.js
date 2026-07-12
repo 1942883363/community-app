@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {
@@ -44,7 +45,7 @@ Page({
       const list = items.map(item => ({
         id: item.id,
         name: item.name,
-        image: item.logo || '',
+        image: resolveImage(item.logo || ''),
         address: item.address || '',
         phone: item.phone || '',
         description: item.description || ''

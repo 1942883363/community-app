@@ -8,6 +8,7 @@ from database import get_db
 from models.admin import AdminUser
 from models.business import BusinessCategory, Business
 from routers.auth import get_current_user
+from routers.upload import create_image_review, is_image_approved
 from schemas.business import (
     BusinessCategoryCreate,
     BusinessCategoryUpdate,
@@ -77,6 +78,13 @@ def delete_business_category(
     return success_response(message="删除成功")
 
 
+def _filter_logo(business: Business, db: Session) -> dict:
+    data = BusinessResponse.model_validate(business).model_dump()
+    if data["logo"] and not is_image_approved(db, data["logo"]):
+        data["logo"] = ""
+    return data
+
+
 @router.get("/businesses")
 def get_businesses(
     category_id: Optional[int] = Query(None),
@@ -87,8 +95,20 @@ def get_businesses(
         stmt = stmt.where(Business.category_id == category_id)
     businesses = db.execute(stmt).scalars().all()
     return success_response(
-        [BusinessResponse.model_validate(b).model_dump() for b in businesses]
+        [_filter_logo(b, db) for b in businesses]
     )
+
+
+@router.get("/businesses/{business_id}")
+def get_business(
+    business_id: int,
+    db: Session = Depends(get_db),
+):
+    stmt = select(Business).where(Business.id == business_id)
+    business = db.execute(stmt).scalar_one_or_none()
+    if business is None:
+        return error_response(404, "商家不存在")
+    return success_response(_filter_logo(business, db))
 
 
 @router.post("/businesses")
@@ -111,6 +131,7 @@ def create_business(
     db.add(business)
     db.commit()
     db.refresh(business)
+    create_image_review(db, data.logo, "business_logo", business.id)
     return success_response(BusinessResponse.model_validate(business).model_dump(), "创建成功")
 
 
@@ -128,6 +149,8 @@ def update_business(
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(business, key, value)
+    if "logo" in update_data:
+        create_image_review(db, update_data["logo"], "business_logo", business.id)
     db.commit()
     db.refresh(business)
     return success_response(BusinessResponse.model_validate(business).model_dump(), "更新成功")

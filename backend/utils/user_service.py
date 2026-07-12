@@ -11,14 +11,21 @@ def get_or_create_user(db: Session, openid: str, nickname: str = "", phone: str 
     stmt = select(User).where(User.openid == openid)
     user = db.execute(stmt).scalar_one_or_none()
 
+    changed = False
     if user is None:
         user = User(openid=openid, nickname=nickname, phone=phone)
         db.add(user)
+        changed = True
+    else:
+        if nickname and user.nickname != nickname:
+            user.nickname = nickname
+            changed = True
+        if phone and user.phone != phone:
+            user.phone = phone
+            changed = True
+
+    if changed:
         db.commit()
         db.refresh(user)
-    elif nickname and user.nickname != nickname:
-        user.nickname = nickname
-    if phone and user.phone != phone:
-        user.phone = phone
 
     return user

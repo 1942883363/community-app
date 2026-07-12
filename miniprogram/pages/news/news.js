@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {
@@ -50,7 +51,7 @@ Page({
         id: item.id,
         title: item.title,
         summary: item.summary || '',
-        cover: item.cover_image || '',
+        cover: resolveImage(item.cover_image || ''),
         views: item.view_count || 0,
         likes: item.like_count || 0,
         created_at: this.formatTime(item.created_at)

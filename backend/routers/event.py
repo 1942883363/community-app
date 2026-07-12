@@ -8,6 +8,7 @@ from database import get_db
 from models.admin import AdminUser
 from models.event import Event, Registration
 from routers.auth import get_current_user
+from routers.upload import create_image_review, is_image_approved
 from schemas.event import (
     EventCreate,
     EventUpdate,
@@ -30,6 +31,8 @@ def _get_enrolled_count(db: Session, event_id: int) -> int:
 def _build_event_response(event: Event, db: Session) -> dict:
     data = EventResponse.model_validate(event).model_dump()
     data["enrolled_count"] = _get_enrolled_count(db, event.id)
+    if data["cover_image"] and not is_image_approved(db, data["cover_image"]):
+        data["cover_image"] = ""
     return data
 
 
@@ -100,6 +103,7 @@ def create_event(
     db.add(event)
     db.commit()
     db.refresh(event)
+    create_image_review(db, data.cover_image, "event_cover", event.id, auto_approve=True)
     return success_response(_build_event_response(event, db), "创建成功")
 
 
@@ -119,6 +123,8 @@ def update_event(
         update_data["content"] = sanitize_html(update_data["content"])
     for key, value in update_data.items():
         setattr(event, key, value)
+    if "cover_image" in update_data:
+        create_image_review(db, update_data["cover_image"], "event_cover", event.id, auto_approve=True)
     db.commit()
     db.refresh(event)
     return success_response(_build_event_response(event, db), "更新成功")

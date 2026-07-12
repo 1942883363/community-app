@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import type { ReactNode } from 'react'
+import { Spin } from 'antd'
 import { useAuth } from './stores/auth'
 import MainLayout from './components/Layout'
 import LoginPage from './pages/Login'
@@ -11,9 +12,18 @@ import FeedbackManage from './pages/Feedback'
 import PhoneManage from './pages/Phone'
 import EventManage from './pages/Event'
 import BusinessManage from './pages/Business'
+import UserManage from './pages/User'
+import ReviewManage from './pages/Review'
 
 function AuthGuard({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isValidating } = useAuth()
+  if (isValidating) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" />
+      </div>
+    )
+  }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
@@ -41,6 +51,8 @@ export default function App() {
         <Route path="phone" element={<PhoneManage />} />
         <Route path="events" element={<EventManage />} />
         <Route path="business" element={<BusinessManage />} />
+        <Route path="users" element={<UserManage />} />
+        <Route path="reviews" element={<ReviewManage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

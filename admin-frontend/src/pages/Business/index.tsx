@@ -24,8 +24,7 @@ interface BusinessFormValues {
   address: string
   phone: string
   description: string
-  longitude: number
-  latitude: number
+  business_hours: string
   sort_order: number
 }
 
@@ -48,8 +47,8 @@ export default function BusinessManage() {
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null)
   const [bizSubmitting, setBizSubmitting] = useState(false)
   const [bizForm] = Form.useForm<BusinessFormValues>()
-  const [bizImages, setBizImages] = useState<UploadFile[]>([])
-  const [existingImages, setExistingImages] = useState<string[]>([])
+  const [logoFile, setLogoFile] = useState<UploadFile | null>(null)
+  const [logoUrl, setLogoUrl] = useState('')
 
   const { message } = App.useApp()
 
@@ -152,8 +151,8 @@ export default function BusinessManage() {
       return
     }
     setEditingBusiness(null)
-    setBizImages([])
-    setExistingImages([])
+    setLogoFile(null)
+    setLogoUrl('')
     bizForm.resetFields()
     bizForm.setFieldsValue({ sort_order: 0 })
     setBizModalVisible(true)
@@ -161,15 +160,14 @@ export default function BusinessManage() {
 
   const handleBizEdit = (record: Business) => {
     setEditingBusiness(record)
-    setBizImages([])
-    setExistingImages(record.images || [])
+    setLogoFile(null)
+    setLogoUrl(record.logo || '')
     bizForm.setFieldsValue({
       name: record.name,
       address: record.address,
       phone: record.phone,
-      description: record.description,
-      longitude: record.longitude,
-      latitude: record.latitude,
+      description: record.description || '',
+      business_hours: record.business_hours || '',
       sort_order: record.sort_order,
     })
     setBizModalVisible(true)
@@ -191,23 +189,21 @@ export default function BusinessManage() {
       const values = await bizForm.validateFields()
       setBizSubmitting(true)
 
-      const uploadedUrls: string[] = []
-      for (const file of bizImages) {
-        if (file.originFileObj) {
-          try {
-            const res = await uploadFile(file.originFileObj as File)
-            uploadedUrls.push(res.data.url)
-          } catch {
-            message.error('图片上传失败')
-            return
-          }
+      let uploadedLogoUrl = logoUrl
+      if (logoFile?.originFileObj) {
+        try {
+          const res = await uploadFile(logoFile.originFileObj as File)
+          uploadedLogoUrl = res.data.url
+        } catch {
+          message.error('Logo 上传失败')
+          return
         }
       }
 
       const data: Partial<Business> = {
         ...values,
         category_id: selectedCategory.id,
-        images: [...existingImages, ...uploadedUrls],
+        logo: uploadedLogoUrl,
       }
 
       if (editingBusiness) {
@@ -235,22 +231,19 @@ export default function BusinessManage() {
   }
 
   const bizColumns: ColumnsType<Business> = [
+    {
+      title: 'Logo',
+      dataIndex: 'logo',
+      key: 'logo',
+      width: 80,
+      render: (url: string) =>
+        url ? <Image src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} /> : '-',
+    },
     { title: '名称', dataIndex: 'name', key: 'name', width: 120 },
     { title: '地址', dataIndex: 'address', key: 'address', width: 150, ellipsis: true },
     { title: '电话', dataIndex: 'phone', key: 'phone', width: 120 },
+    { title: '营业时间', dataIndex: 'business_hours', key: 'business_hours', width: 120, ellipsis: true },
     { title: '简介', dataIndex: 'description', key: 'description', width: 150, ellipsis: true },
-    {
-      title: '图片',
-      dataIndex: 'images',
-      key: 'images',
-      width: 80,
-      render: (images: string[]) =>
-        images && images.length > 0 ? (
-          <Image src={images[0]} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} />
-        ) : (
-          '-'
-        ),
-    },
     { title: '排序', dataIndex: 'sort_order', key: 'sort_order', width: 70 },
     {
       title: '操作',
@@ -270,13 +263,6 @@ export default function BusinessManage() {
       ),
     },
   ]
-
-  const uploadButton = (
-    <div>
-      <PlusOutlined />
-      <div style={{ marginTop: 8 }}>上传</div>
-    </div>
-  )
 
   return (
     <Row gutter={16}>
@@ -346,7 +332,7 @@ export default function BusinessManage() {
             dataSource={businesses}
             rowKey="id"
             loading={bizLoading}
-            scroll={{ x: 800 }}
+            scroll={{ x: 900 }}
             onChange={handleBizTableChange}
             pagination={{
               current: page,
@@ -399,43 +385,41 @@ export default function BusinessManage() {
           <Form.Item name="phone" label="电话">
             <Input placeholder="请输入电话" />
           </Form.Item>
+          <Form.Item name="business_hours" label="营业时间">
+            <Input placeholder="如：09:00-22:00" />
+          </Form.Item>
           <Form.Item name="description" label="简介">
             <Input.TextArea rows={3} placeholder="请输入简介" />
           </Form.Item>
-          <Form.Item label="图片">
+          <Form.Item label="Logo">
             <Upload
               listType="picture-card"
-              multiple
-              fileList={[
-                ...existingImages.map((url) => ({ uid: url, name: 'img', status: 'done' as const, url })),
-                ...bizImages,
-              ]}
+              maxCount={1}
+              showUploadList={{ showPreviewIcon: false }}
               beforeUpload={(file) => {
-                setBizImages((prev) => [
-                  ...prev,
-                  { uid: `-${Date.now()}`, name: file.name, status: 'done', originFileObj: file },
-                ])
+                setLogoFile({ uid: '-1', name: file.name, status: 'done', originFileObj: file })
                 return false
               }}
-              onRemove={(file) => {
-                if (existingImages.includes(file.uid)) {
-                  setExistingImages((prev) => prev.filter((u) => u !== file.uid))
-                } else {
-                  setBizImages((prev) => prev.filter((f) => f.uid !== file.uid))
-                }
+              onRemove={() => {
+                setLogoFile(null)
+                setLogoUrl('')
               }}
+              fileList={
+                logoUrl && !logoFile
+                  ? [{ uid: '-1', name: 'logo', status: 'done', url: logoUrl }]
+                  : logoFile
+                    ? [logoFile]
+                    : []
+              }
             >
-              {uploadButton}
+              {logoUrl || logoFile ? null : (
+                <div>
+                  <PlusOutlined />
+                  <div style={{ marginTop: 8 }}>上传</div>
+                </div>
+              )}
             </Upload>
           </Form.Item>
-          <Space style={{ display: 'flex' }} align="start">
-            <Form.Item name="longitude" label="经度（可选）">
-              <InputNumber placeholder="经度" style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item name="latitude" label="纬度（可选）">
-              <InputNumber placeholder="纬度" style={{ width: '100%' }} />
-            </Form.Item>
-          </Space>
           <Form.Item name="sort_order" label="排序">
             <InputNumber style={{ width: '100%' }} min={0} placeholder="数字越小越靠前" />
           </Form.Item>

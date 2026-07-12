@@ -7,6 +7,8 @@ import {
   PhoneOutlined,
   CalendarOutlined,
   ShopOutlined,
+  UserOutlined,
+  PictureOutlined,
   LogoutOutlined,
 } from '@ant-design/icons'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
@@ -48,6 +50,16 @@ const menuItems = [
     key: '/business',
     icon: <ShopOutlined />,
     label: '商家管理',
+  },
+  {
+    key: '/users',
+    icon: <UserOutlined />,
+    label: '用户管理',
+  },
+  {
+    key: '/reviews',
+    icon: <PictureOutlined />,
+    label: '图片审核',
   },
 ]
 

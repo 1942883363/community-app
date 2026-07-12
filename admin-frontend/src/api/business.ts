@@ -12,13 +12,13 @@ export interface Business {
   id: number
   category_id: number
   name: string
+  logo: string
   address: string
   phone: string
   description: string
-  images: string[]
-  longitude: number
-  latitude: number
+  business_hours: string
   sort_order: number
+  status: number
 }
 
 export const businessCategoryApi = {

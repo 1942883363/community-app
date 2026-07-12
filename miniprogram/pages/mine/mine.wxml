@@ -1,7 +1,56 @@
 <view class="page">
   <view class="user-header">
-    <view class="user-avatar">👤</view>
-    <text class="user-id">用户 {{userId}}</text>
+    <button
+      class="avatar-wrap"
+      open-type="chooseAvatar"
+      bindchooseavatar="onChooseAvatar"
+      disabled="{{!showEdit}}"
+    >
+      <image
+        class="user-avatar"
+        src="{{showEdit ? (editAvatarUrl || user.avatar || '/assets/default-avatar.png') : (user.avatar || '/assets/default-avatar.png')}}"
+        mode="aspectFill"
+      />
+    </button>
+
+    <view wx:if="{{!showEdit && isRegistered}}" class="user-info">
+      <text class="user-name">{{user.nickname || '未设置昵称'}}</text>
+      <text class="user-phone" wx:if="{{user.phone}}">{{user.phone}}</text>
+      <view class="edit-btn" bindtap="onShowEdit">
+        <text>编辑资料</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!showEdit && !isRegistered}}" class="user-info">
+      <text class="user-name">游客</text>
+      <text class="user-desc">注册后可解锁完整功能</text>
+      <view class="register-btn" bindtap="onGoRegister">
+        <text>立即注册</text>
+      </view>
+    </view>
+
+    <view wx:if="{{showEdit}}" class="edit-area">
+      <text class="edit-avatar-hint">点击头像更换</text>
+      <input
+        class="nickname-input"
+        type="nickname"
+        placeholder="请输入昵称"
+        value="{{editForm.nickname}}"
+        bindinput="onNicknameInput"
+      />
+      <input
+        class="phone-input"
+        type="number"
+        placeholder="请输入手机号"
+        value="{{editForm.phone}}"
+        bindinput="onPhoneInput"
+        maxlength="11"
+      />
+      <view class="edit-actions">
+        <button class="cancel-btn" size="mini" bindtap="onCancelEdit">取消</button>
+        <button class="save-btn" size="mini" type="primary" bindtap="onSaveProfile">保存</button>
+      </view>
+    </view>
   </view>
 
   <view class="record-tabs card">
@@ -67,7 +116,7 @@
         <text class="list-title text-ellipsis-2">{{item.content}}</text>
         <view class="flex-between">
           <text class="text-secondary">{{item.created_at || ''}}</text>
-          <text class="tag">{{item.status === 'replied' ? '已回复' : '待处理'}}</text>
+          <text class="tag">{{item.status === 2 ? '已回复' : '待处理'}}</text>
         </view>
       </view>
     </block>
@@ -82,6 +131,16 @@
       <view class="flex-row">
         <text class="more-emoji">💬</text>
         <text class="more-text">意见反馈</text>
+      </view>
+      <text class="text-secondary">›</text>
+    </view>
+  </view>
+
+  <view wx:if="{{isRegistered}}" class="logout-section card" bindtap="onLogout">
+    <view class="flex-between">
+      <view class="flex-row">
+        <text class="logout-emoji">🚪</text>
+        <text class="logout-text">退出登录</text>
       </view>
       <text class="text-secondary">›</text>
     </view>

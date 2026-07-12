@@ -11,9 +11,9 @@ import { uploadFile } from '../../api/request'
 interface EventFormValues {
   title: string
   content: string
-  location: string
-  start_time: string
-  end_time: string
+  address: string
+  event_date: string
+  event_time: string
   max_participants: number
 }
 
@@ -83,9 +83,9 @@ export default function EventManage() {
     form.setFieldsValue({
       title: record.title,
       content: record.content,
-      location: record.location,
-      start_time: record.start_time,
-      end_time: record.end_time,
+      address: record.address,
+      event_date: record.event_date,
+      event_time: record.event_time,
       max_participants: record.max_participants,
     })
     setModalVisible(true)
@@ -169,14 +169,14 @@ export default function EventManage() {
       render: (url: string) =>
         url ? <Image src={url} width={48} height={48} style={{ objectFit: 'cover', borderRadius: 4 }} /> : '-',
     },
-    { title: '地点', dataIndex: 'location', key: 'location', width: 120 },
+    { title: '地点', dataIndex: 'address', key: 'address', width: 120 },
     {
       title: '时间',
       key: 'time',
       width: 200,
       render: (_, record) => (
         <span>
-          {record.start_time} ~ {record.end_time}
+          {record.event_date || ''}{record.event_time ? ` ${record.event_time}` : ''}
         </span>
       ),
     },
@@ -186,7 +186,7 @@ export default function EventManage() {
       width: 100,
       render: (_, record) => (
         <span>
-          {record.current_count}/{record.max_participants}
+          {record.enrolled_count}/{record.max_participants}
         </span>
       ),
     },
@@ -296,15 +296,15 @@ export default function EventManage() {
           <Form.Item name="content" label="详情">
             <Input.TextArea rows={4} placeholder="请输入活动详情" />
           </Form.Item>
-          <Form.Item name="location" label="地点">
+          <Form.Item name="address" label="地点">
             <Input placeholder="请输入活动地点" />
           </Form.Item>
           <Space style={{ display: 'flex' }} align="start">
-            <Form.Item name="start_time" label="开始时间" rules={[{ required: true, message: '请输入开始时间' }]}>
-              <Input placeholder="YYYY-MM-DD HH:mm:ss" />
+            <Form.Item name="event_date" label="活动日期" rules={[{ required: true, message: '请选择日期' }]}>
+              <Input placeholder="YYYY-MM-DD" />
             </Form.Item>
-            <Form.Item name="end_time" label="结束时间" rules={[{ required: true, message: '请输入结束时间' }]}>
-              <Input placeholder="YYYY-MM-DD HH:mm:ss" />
+            <Form.Item name="event_time" label="活动时间">
+              <Input placeholder="如：14:00-16:00" />
             </Form.Item>
           </Space>
           <Form.Item name="max_participants" label="名额上限">

@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {

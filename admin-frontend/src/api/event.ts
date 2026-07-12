@@ -6,11 +6,11 @@ export interface Event {
   title: string
   cover_image: string
   content: string
-  location: string
-  start_time: string
-  end_time: string
+  address: string
+  event_date: string
+  event_time: string
   max_participants: number
-  current_count: number
+  enrolled_count: number
   status: number
 }
 

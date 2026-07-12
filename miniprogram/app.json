@@ -10,7 +10,8 @@
     "pages/business-detail/business-detail",
     "pages/transit/transit",
     "pages/feedback/feedback",
-    "pages/mine/mine"
+    "pages/mine/mine",
+    "pages/login/login"
   ],
   "window": {
     "navigationBarTitleText": "社区便民资讯",

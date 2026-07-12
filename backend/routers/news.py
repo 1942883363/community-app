@@ -8,6 +8,7 @@ from database import get_db
 from models.admin import AdminUser
 from models.news import News, NewsLike
 from routers.auth import get_current_user
+from routers.upload import create_image_review, is_image_approved
 from schemas.news import NewsCreate, NewsUpdate, NewsResponse, NewsListItem
 from utils.response import success_response, error_response, paginated_response
 from utils.user_service import get_or_create_user
@@ -37,9 +38,34 @@ def get_news_list(
     total = db.execute(count_query).scalar() or 0
     stmt = base_query.order_by(desc(News.is_top), desc(News.created_at)).offset((page - 1) * page_size).limit(page_size)
     news_list = db.execute(stmt).scalars().all()
-    items = [NewsListItem.model_validate(n).model_dump() for n in news_list]
+    items = []
+    for n in news_list:
+        item = NewsListItem.model_validate(n).model_dump()
+        if item["cover_image"] and not is_image_approved(db, item["cover_image"]):
+            item["cover_image"] = ""
+        items.append(item)
 
     return paginated_response(items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get("/my-likes")
+def get_my_likes(
+    x_user_id: str = Header(None, alias="X-User-Id"),
+    db: Session = Depends(get_db),
+):
+    if not x_user_id:
+        return success_response([])
+    user = get_or_create_user(db, x_user_id)
+
+    stmt = (
+        select(News)
+        .join(NewsLike, News.id == NewsLike.news_id)
+        .where(NewsLike.user_id == user.id)
+        .order_by(desc(NewsLike.created_at))
+    )
+    news_list = db.execute(stmt).scalars().all()
+    items = [{"id": n.id, "title": n.title} for n in news_list]
+    return success_response(items)
 
 
 @router.get("/{news_id}")
@@ -72,6 +98,7 @@ def create_news(
     db.add(news)
     db.commit()
     db.refresh(news)
+    create_image_review(db, data.cover_image, "news_cover", news.id, auto_approve=True)
     return success_response(NewsResponse.model_validate(news).model_dump(), "创建成功")
 
 
@@ -91,6 +118,8 @@ def update_news(
         update_data["content"] = sanitize_html(update_data["content"])
     for key, value in update_data.items():
         setattr(news, key, value)
+    if "cover_image" in update_data:
+        create_image_review(db, update_data["cover_image"], "news_cover", news.id, auto_approve=True)
     db.commit()
     db.refresh(news)
     return success_response(NewsResponse.model_validate(news).model_dump(), "更新成功")

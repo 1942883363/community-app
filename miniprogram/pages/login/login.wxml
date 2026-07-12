@@ -1,0 +1,87 @@
+<view class="login-page">
+  <view class="logo-area">
+    <view class="tab-bar">
+      <view class="tab-item {{tab === 'register' ? 'active' : ''}}" data-tab="register" bindtap="onSwitchTab">
+        <text>注册</text>
+      </view>
+      <view class="tab-item {{tab === 'login' ? 'active' : ''}}" data-tab="login" bindtap="onSwitchTab">
+        <text>登录</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-card">
+
+    <view wx:if="{{tab === 'register'}}" class="avatar-row">
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image
+          class="avatar-img"
+          src="{{avatarUrl || '/assets/default-avatar.png'}}"
+          mode="aspectFill"
+        />
+        <text class="avatar-hint">点击选择头像</text>
+      </button>
+    </view>
+
+    <view class="input-group">
+      <view wx:if="{{tab === 'register'}}" class="input-row">
+        <text class="input-label">昵称</text>
+        <input
+          class="field-input"
+          type="nickname"
+          placeholder="请输入昵称"
+          value="{{nickname}}"
+          bindinput="onNicknameInput"
+        />
+      </view>
+
+      <view class="input-row">
+        <text class="input-label">手机号</text>
+        <input
+          class="field-input"
+          type="number"
+          placeholder="请输入11位手机号"
+          value="{{phone}}"
+          bindinput="onPhoneInput"
+          maxlength="11"
+        />
+      </view>
+
+      <view class="input-row">
+        <text class="input-label">{{tab === 'register' ? '设置密码' : '密码'}}</text>
+        <input
+          class="field-input"
+          type="password"
+          placeholder="{{tab === 'register' ? '请设置6位以上密码' : '请输入密码'}}"
+          password="{{true}}"
+          value="{{password}}"
+          bindinput="onPasswordInput"
+          maxlength="20"
+        />
+      </view>
+    </view>
+
+    <view wx:if="{{showLoginError}}" class="error-msg">
+      <text>{{showLoginError}}</text>
+    </view>
+
+    <button class="submit-btn" type="primary" bindtap="onSubmit" loading="{{submitting}}" disabled="{{submitting}}">
+      {{submitting ? (tab === 'register' ? '注册中...' : '登录中...') : (tab === 'register' ? '注册新账号' : '登录')}}
+    </button>
+
+    <view class="tips-text" wx:if="{{tab === 'register'}}">
+      <text>手机号 + 密码注册，登录时使用</text>
+    </view>
+    <view class="tips-text" wx:if="{{tab === 'login'}}">
+      <text>输入注册时的手机号和密码登录</text>
+    </view>
+
+    <view class="switch-link" bindtap="onSwitchTab" data-tab="{{tab === 'register' ? 'login' : 'register'}}">
+      <text>{{tab === 'register' ? '已有账号？去登录' : '没有账号？去注册'}}</text>
+    </view>
+
+    <view class="skip-link" bindtap="onSkip">
+      <text>暂不操作，以游客模式进入</text>
+    </view>
+  </view>
+</view>

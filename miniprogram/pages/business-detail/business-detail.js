@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {
@@ -30,8 +31,10 @@ Page({
         phone: res.phone || '',
         description: res.description || '',
         business_hours: res.business_hours || '',
-        logo: res.logo || ''
+        logo: resolveImage(res.logo || '')
       }
+      this.setData({ business })
+    }).catch(() => {
       wx.showToast({ title: '加载失败', icon: 'none' })
     })
   },
@@ -47,15 +50,7 @@ Page({
 
   onOpenLocation() {
     const { business } = this.data
-    if (business.latitude && business.longitude) {
-      wx.openLocation({
-        latitude: business.latitude,
-        longitude: business.longitude,
-        name: business.name,
-        address: business.address,
-        scale: 16
-      })
-    } else if (business.address) {
+    if (business.address) {
       wx.showToast({ title: '暂无坐标信息', icon: 'none' })
     } else {
       wx.showToast({ title: '暂无位置信息', icon: 'none' })

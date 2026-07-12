@@ -49,6 +49,9 @@ from routers.event import router as event_router
 from routers.business import router as business_router
 from routers.transit import router as transit_router
 from routers.upload import router as upload_router
+from routers.user import router as user_router
+from routers.review import router as review_router
+from routers.dashboard import router as dashboard_router
 
 app.include_router(auth_router)
 app.include_router(category_router)
@@ -59,3 +62,6 @@ app.include_router(event_router)
 app.include_router(business_router)
 app.include_router(transit_router)
 app.include_router(upload_router)
+app.include_router(user_router)
+app.include_router(review_router)
+app.include_router(dashboard_router)

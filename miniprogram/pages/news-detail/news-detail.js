@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {
@@ -29,7 +30,7 @@ Page({
         id: res.id,
         title: res.title,
         content: res.content || '',
-        cover: res.cover_image || '',
+        cover: resolveImage(res.cover_image || ''),
         views: res.view_count || 0,
         likes: res.like_count || 0,
         created_at: this.formatTime(res.created_at)
@@ -42,33 +43,23 @@ Page({
   },
 
   checkLikeStatus(id) {
-    const likedIds = wx.getStorageSync('liked_news_ids') || []
-    const isLiked = likedIds.indexOf(Number(id)) !== -1
-    this.setData({ isLiked })
+    api.get(`/news/${id}/like-status`).then(res => {
+      this.setData({ isLiked: res.liked })
+    }).catch(() => {})
   },
 
   onToggleLike() {
     const { newsId, news, isLiked } = this.data
-    const likedIds = wx.getStorageSync('liked_news_ids') || []
 
-    if (isLiked) {
-      const idx = likedIds.indexOf(Number(newsId))
-      if (idx > -1) likedIds.splice(idx, 1)
+    api.post(`/news/${newsId}/like`).then(res => {
       this.setData({
-        isLiked: false,
-        'news.likes': Math.max(0, (news.likes || 0) - 1)
+        isLiked: res.liked,
+        'news.likes': res.like_count
       })
-      wx.showToast({ title: '已取消点赞', icon: 'none' })
-    } else {
-      likedIds.push(Number(newsId))
-      this.setData({
-        isLiked: true,
-        'news.likes': (news.likes || 0) + 1
-      })
-      wx.showToast({ title: '点赞成功', icon: 'none' })
-    }
-
-    wx.setStorageSync('liked_news_ids', likedIds)
+      wx.showToast({ title: res.liked ? '点赞成功' : '已取消点赞', icon: 'none' })
+    }).catch(err => {
+      wx.showToast({ title: '操作失败', icon: 'none' })
+    })
   },
 
   formatTime(dateStr) {

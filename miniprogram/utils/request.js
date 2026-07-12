@@ -1,4 +1,11 @@
-const { BASE_URL } = require('./config')
+const { BASE_URL, STATIC_BASE } = require('./config')
+
+const resolveImage = (url) => {
+  if (!url || url.startsWith('http://') || url.startsWith('https://') || url.startsWith('wxfile://')) {
+    return url || ''
+  }
+  return STATIC_BASE + url
+}
 
 const getUserId = () => {
   let userId = wx.getStorageSync('user_id')
@@ -76,5 +83,8 @@ module.exports = {
   put,
   del,
   upload,
-  getUserId: getUserIdStatic
+  getUserId: getUserIdStatic,
+  resolveImage,
+  BASE_URL,
+  STATIC_BASE
 }

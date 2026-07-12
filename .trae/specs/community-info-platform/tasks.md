@@ -1,121 +1,258 @@
-# Tasks
+# 社区便民资讯平台 开发任务记录
 
-- [x] Task 0: MySQL 数据库初始化与建表（最高优先级）
-  - [x] SubTask 0.1: 创建 MySQL 数据库 `community_db`（utf8mb4）
-  - [x] SubTask 0.2: 编写并执行全部 11 张表的 DDL 建表脚本（admin_users, categories, news, news_likes, feedback, phone_categories, phone_entries, events, registrations, business_categories, businesses）
-  - [x] SubTask 0.3: 验证表结构（外键、索引、字段类型）
+## 项目概述
 
-- [x] Task 1: 后端基础架构搭建
-  - [x] SubTask 1.1: 初始化 FastAPI 项目结构（main.py、config.py、.env 配置文件、requirements.txt）
-  - [x] SubTask 1.2: 创建 MySQL 数据库连接引擎和 Session 管理（database.py）
-  - [x] SubTask 1.3: 定义统一响应模型和分页模型（schemas/common.py）
-  - [x] SubTask 1.4: 创建全局异常处理器和 CORS 中间件配置
-  - [x] SubTask 1.5: 实现 `/api/health` 健康检查端点
+社区便民资讯平台由 FastAPI 后端 + React 管理后台 + 微信原生小程序 三部分组成，实现了资讯管理、便民电话、社区活动、周边商家、意见反馈、公交查询、用户系统、图片审核、仪表盘统计等核心功能。
 
-- [x] Task 2: 用户认证模块
-  - [x] SubTask 2.1: 创建管理员用户 SQLAlchemy 模型（models/admin.py）
-  - [x] SubTask 2.2: 实现 JWT Token 生成与验证逻辑（utils/auth.py）
-  - [x] SubTask 2.3: 实现登录接口 POST /api/auth/login 和 GET /api/auth/me
-  - [x] SubTask 2.4: 创建认证依赖注入（get_current_user）
-  - [x] SubTask 2.5: 编写种子数据脚本，创建默认管理员账号和初始分类数据
+---
 
-- [x] Task 3: 资讯模块 API
-  - [x] SubTask 3.1: 创建资讯模型（models/news.py）和分类模型（models/category.py）
-  - [x] SubTask 3.2: 实现分类 CRUD API（routers/category.py）
-  - [x] SubTask 3.3: 实现资讯管理端 CRUD API（routers/news.py）
-  - [x] SubTask 3.4: 实现小程序端资讯列表与详情接口（公开访问，分页+分类筛选）
-  - [x] SubTask 3.5: 实现资讯点赞/取消点赞接口 POST /api/news/{id}/like
-  - [x] SubTask 3.6: 实现浏览计数自增逻辑
+## 阶段一：项目初始化与基础架构
 
-- [x] Task 4: 意见反馈模块 API
-  - [x] SubTask 4.1: 创建反馈模型（models/feedback.py）
-  - [x] SubTask 4.2: 实现用户提交反馈接口 POST /api/feedback（公开访问）
-  - [x] SubTask 4.3: 实现管理端工单列表接口 GET /api/feedback（鉴权，支持状态筛选）
-  - [x] SubTask 4.4: 实现工单状态更新接口 PUT /api/feedback/{id}/status（鉴权）
-  - [x] SubTask 4.5: 实现反馈图片上传接口 POST /api/upload
+### TASK-001 后端项目搭建 ✅
+- FastAPI 应用入口（main.py）
+- SQLAlchemy 数据库引擎 + Session 管理（database.py）
+- pydantic-settings 配置管理（config.py, .env）
+- CORS 中间件 + 全局异常处理器
+- MySQL 数据库初始化脚本（sql/init.sql）
 
-- [x] Task 5: 便民电话簿模块 API
-  - [x] SubTask 5.1: 创建电话簿模型（models/phone.py）
-  - [x] SubTask 5.2: 实现电话簿分类 CRUD API（routers/phone.py）
-  - [x] SubTask 5.3: 实现电话条目 CRUD API（routers/phone.py）
-  - [x] SubTask 5.4: 实现小程序端电话簿查询接口（公开访问，按分类筛选）
+### TASK-002 管理后台项目搭建 ✅
+- Vite + React 18 + TypeScript + Ant Design 5 项目初始化
+- axios 请求封装 + Token 拦截器 + 401 处理
+- AuthProvider + useAuth React Context
+- AuthGuard 路由守卫（三态：loading/authenticated/unauthenticated）
+- 主布局（侧边栏 + 顶栏）
 
-- [x] Task 6: 社区活动报名模块 API
-  - [x] SubTask 6.1: 创建活动模型（models/event.py）
-  - [x] SubTask 6.2: 实现活动 CRUD API（routers/event.py）
-  - [x] SubTask 6.3: 实现小程序端活动列表与详情接口（公开访问）
-  - [x] SubTask 6.4: 实现活动报名接口 POST /api/events/{id}/register（校验名额、防重复报名）
+### TASK-003 小程序项目搭建 ✅
+- 微信原生框架项目初始化
+- wx.request Promise 封装（request.js）
+- 设备标识 UUID 生成 + 存储（getUserId）
+- 图片路径解析（resolveImage）
+- TabBar 配置（首页/资讯/出行/我的）
 
-- [x] Task 7: 周边商家查询模块 API
-  - [x] SubTask 7.1: 创建商家模型（models/business.py）
-  - [x] SubTask 7.2: 实现商家分类 CRUD API（routers/business.py）
-  - [x] SubTask 7.3: 实现商家 CRUD API（routers/business.py）
-  - [x] SubTask 7.4: 实现小程序端商家列表与详情接口（公开访问，按分类筛选）
+---
 
-- [x] Task 8: 公交地铁查询 Skill
-  - [x] SubTask 8.1: 创建 Skill 目录结构并编写 skill 定义文件（.trae/skills/bus-metro-query/）
-  - [x] SubTask 8.2: 实现高德公交 API 对接逻辑（周边站点查询、线路到站时间）
-  - [x] SubTask 8.3: 在后端创建公交查询代理接口 GET /api/transit/nearby 和 GET /api/transit/arrival
-  - [x] SubTask 8.4: 编写 Skill 使用文档和测试用例
+## 阶段二：核心业务模块开发
 
-- [x] Task 9: React 管理后台 - 项目初始化与布局
-  - [x] SubTask 9.1: 使用 Vite + React + TypeScript 初始化项目
-  - [x] SubTask 9.2: 安装并配置 Ant Design 5、React Router v6、Axios
-  - [x] SubTask 9.3: 实现登录页面和 Token 存储逻辑
-  - [x] SubTask 9.4: 实现后台主布局（侧边导航 + 顶栏 + 内容区）
-  - [x] SubTask 9.5: 实现路由守卫和 Axios 请求拦截器（自动附加 Token）
+### TASK-004 管理员认证系统 ✅
+**后端**：
+- AdminUser 模型 + JWT 登录（utils/auth.py）
+- bcrypt 密码哈希/验证
+- POST /api/auth/login + GET /api/auth/me
+- get_current_user 依赖注入
 
-- [x] Task 10: React 管理后台 - 资讯管理页面
-  - [x] SubTask 10.1: 实现分类管理页面（树形表格、新增/编辑/删除对话框）
-  - [x] SubTask 10.2: 实现资讯列表页面（分页表格、搜索、分类筛选）
-  - [x] SubTask 10.3: 实现资讯发布/编辑页面（富文本编辑器、封面上传、分类选择）
+**前端**：
+- 登录页面
+- Token sessionStorage 存储
+- 启动时主动验证 Token
+- 401 拦截 → 清除 Token → 跳转登录
 
-- [x] Task 11: React 管理后台 - 功能管理页面
-  - [x] SubTask 11.1: 实现反馈工单管理页面（列表、状态筛选、状态流转、备注）
-  - [x] SubTask 11.2: 实现电话簿管理页面（分类管理 + 条目 CRUD）
-  - [x] SubTask 11.3: 实现活动管理页面（活动 CRUD + 报名记录查看）
-  - [x] SubTask 11.4: 实现商家管理页面（分类管理 + 商家 CRUD + 图片上传）
+### TASK-005 资讯模块 ✅
+**后端**：
+- Category + News + NewsLike 模型
+- Category CRUD（/api/categories）
+- News CRUD + 置顶 + 点赞 + 点赞状态查询（/api/news）
+- 分页列表支持 category_id/status 筛选
+- 浏览计数自增
+- 封面图审核记录自动创建
 
-- [x] Task 12: 微信小程序端 - 项目初始化与首页
-  - [x] SubTask 12.1: 初始化微信小程序项目结构（app.json、全局样式）
-  - [x] SubTask 12.2: 封装 HTTP 请求工具（wx.request Promise 化 + 统一错误处理）
-  - [x] SubTask 12.3: 实现首页布局（Banner 轮播、功能入口网格、最新资讯列表）
-  - [x] SubTask 12.4: 实现底部 TabBar 导航（首页、资讯、服务、我的）
+**管理后台**：
+- 分类管理页面
+- 资讯列表（分页 + 分类筛选）
+- 资讯编辑（封面上传 + 置顶）
+- 资讯新增/删除
 
-- [x] Task 13: 微信小程序端 - 资讯模块
-  - [x] SubTask 13.1: 实现资讯列表页（分类 Tab 切换、下拉刷新、上拉加载更多）
-  - [x] SubTask 13.2: 实现资讯详情页（富文本渲染、点赞互动、分享功能）
-  - [x] SubTask 13.3: 实现资讯搜索功能
+**小程序**：
+- 首页轮播 + 分类入口 + 最新资讯
+- 资讯列表（分类筛选 + 上拉加载）
+- 资讯详情 + 点赞
+- 浏览计数
 
-- [x] Task 14: 微信小程序端 - 便民服务模块
-  - [x] SubTask 14.1: 实现便民电话簿页面（分类列表 + 条目列表 + 一键拨号）
-  - [x] SubTask 14.2: 实现社区活动页面（活动列表 + 详情 + 在线报名表单）
-  - [x] SubTask 14.3: 实现周边商家页面（分类筛选 + 商家列表 + 详情）
-  - [x] SubTask 14.4: 实现公交地铁查询页面（定位 + 周边站点 + 线路到站信息）
+### TASK-006 意见反馈模块 ✅
+**后端**：Feedback 模型 + CRUD + 状态管理（/api/feedback）
+**管理后台**：反馈列表 + 状态筛选 + 回复 + 删除
+**小程序**：反馈表单（文字 + 图片上传）+ 提交
 
-- [x] Task 15: 微信小程序端 - 反馈与个人中心
-  - [x] SubTask 15.1: 实现意见反馈页面（表单、图片上传、提交）
-  - [x] SubTask 15.2: 实现"我的"页面（我的点赞、我的报名、我的反馈记录）
-  - [x] SubTask 15.3: 实现反馈记录列表页（查看提交历史和处理状态）
+### TASK-007 便民电话簿模块 ✅
+**后端**：PhoneCategory + PhoneEntry 模型 + CRUD（/api/phone-categories, /api/phone-entries）
+**管理后台**：分类 + 条目管理
+**小程序**：分类浏览 + 一键拨号 + 搜索
 
-- [x] Task 16: 集成测试与部署文档
-  - [x] SubTask 16.1: 编写后端 API 测试用例（pytest）
-  - [x] SubTask 16.2: 编写项目启动指南（README）
-  - [x] SubTask 16.3: 编写后端 .env 配置模板
+### TASK-008 社区活动模块 ✅
+**后端**：
+- Event + Registration 模型
+- Event CRUD + 报名 + 报名列表（/api/events）
+- enrolled_count 实时 SQL COUNT 计算
+- 重复报名 UNIQUE 约束
+- 封面图审核记录自动创建
 
-# Task Dependencies
-- Task 0（建表）为所有后端任务的前置条件
-- Task 1 依赖 Task 0
-- Task 2 依赖 Task 1
-- Task 3-7（所有业务模块 API）依赖 Task 1, Task 2
-- Task 8 依赖 Task 1
-- Task 9 依赖 Task 1
-- Task 10-11 依赖 Task 9，并行依赖 Task 2-7 对应 API
-- Task 12 独立启动，可在 Task 1 完成后开始
-- Task 13-15 依赖 Task 12，并行依赖 Task 2-8 对应 API
-- Task 16 依赖所有前置任务
+**管理后台**：活动列表 + 新增/编辑 + 报名列表
+**小程序**：活动列表 + 详情 + 报名
 
-# 可并行执行的任务组
-- Task 2-8（后端 API）可在 Task 1 完成后并行开发
-- Task 10-11（管理后台页面）可在 Task 9 完成后并行开发
-- Task 13-15（小程序页面）可在 Task 12 完成后并行开发
+### TASK-009 周边商家模块 ✅
+**后端**：BusinessCategory + Business 模型 + CRUD（/api/business-categories, /api/businesses）
+**管理后台**：分类 + 商家管理（Logo 上传、business_hours）
+**小程序**：分类浏览 + 详情
+
+### TASK-010 公交查询模块 ✅
+**后端**：高德 API 代理（/api/transit/nearby, /api/transit/arrival）
+**小程序**：周边站点 + 实时到站查询界面
+
+### TASK-011 文件上传系统 ✅
+**后端**：
+- POST /api/upload（管理上传，MIME 白名单）
+- POST /api/upload/public（小程序上传，Pillow 强制转 JPG）
+- create_image_review() 公共函数导出
+- is_image_approved() 审核状态查询
+
+### TASK-012 图片审核模块 ✅
+**后端**：
+- ImageReview 模型（image_reviews 表）
+- GET /api/reviews（分页 + status 筛选）
+- PUT approve / reject
+- GET /api/reviews/check
+- 所有业务 Create/Update 自动创建审核记录
+- 所有 GET 端点过滤未审核图片
+
+**管理后台**：
+- 审核列表（三 Tab：全部/待审核/已通过/已拒绝）
+- 通过/拒绝操作
+
+---
+
+## 阶段三：用户系统与密码安全
+
+### TASK-013 小程序用户系统 ✅
+**后端**：
+- User 模型（openid + nickname + phone + password_hash + avatar）
+- PUT /api/users/register（昵称+手机号唯一校验，bcrypt 哈希）
+- POST /api/users/login（手机号+密码，openid 绑定切换）
+- POST /api/users/logout（openid 清空解绑）
+- GET/PUT /api/users/me（个人信息 + 密码修改）
+- GET /api/users/search（昵称搜索）
+
+**小程序**：
+- 注册/登录页面（头像选择 + 昵称 + 手机号 + 密码）
+- 头像上传 → Pillow 转 JPG
+- 个人中心（头像展示 + 编辑资料）
+- 游客模式（跳过登录）
+
+### TASK-014 管理后台用户管理 ✅
+**后端**：
+- GET /api/users（列表 + 分页 + 搜索）
+- GET/PUT/DELETE /api/users/{id}（含密码 bcrypt 重新哈希）
+
+**前端**：
+- 用户列表（分页 + 搜索）
+- 编辑弹窗（含密码输入框，留空不修改）
+- 用户删除
+
+### TASK-015 密码安全加固 ✅
+- users 表新增 password_hash 列
+- 注册/登录双向 bcrypt 验证
+- 管理后台编辑用户密码 bcrypt 重新哈希
+- 用户自己修改密码 bcrypt 重新哈希
+- 共享 pwd_context（utils/password.py）
+
+### TASK-016 仪表盘统计 ✅
+**后端**：
+- GET /api/dashboard/stats（六维度 SELECT COUNT）
+- news/feedback/phone/event/business/user
+
+**前端**：
+- 六张统计卡片
+- useEffect 动态获取数据
+
+---
+
+## 阶段四：Bug 修复与优化
+
+### TASK-017 Token 安全加固 ✅
+**问题**：localStorage 持久存储，关闭标签页不失效
+**修复**：改为 sessionStorage + 启动时主动验证 + AuthGuard 三态防闪烁
+
+### TASK-018 Dashboard 数据全为 0 ✅
+**问题**：前端 Statistic value={0} 硬编码
+**修复**：新建后端统计接口 + 前端动态取值
+
+### TASK-019 图片审核全链路缺陷 ✅
+**问题 1**：审核表孤立，业务接口不创建也不读取审核记录
+**修复**：create_image_review() 注入所有 Create/Update，is_image_approved() 注入所有 GET
+
+**问题 2**：Business 前后端字段不一致（images[] vs logo）
+**修复**：统一为 logo: string + 单图上传
+
+**问题 3**：Event 前后端字段不一致（location/start_time vs address/event_date）
+**修复**：全部对齐后端 schema
+
+### TASK-020 小程序头像空白（三阶段排查）✅
+**阶段一**：审核表 status=0 阻断 → auto_approve=true
+**阶段二**：MIME 类型被拒绝（wx.uploadFile 非标准 Content-Type）→ 移除检查 + Pillow 转 JPG
+**阶段三**：upload fail 静默吞错 → console.error + Toast 提示
+
+### TASK-021 用户登录/注册数据覆盖 Bug ✅
+**问题 1**：退出登录清空 nickname → 登录按 nickname 查找失败
+**修复**：退出改 openid="" 解绑，nickname 保留
+
+**问题 2**：同设备注册新账号覆盖旧数据
+**修复**：注册新建行，旧行 openid 解绑
+
+**问题 3**：登录切换账号丢失旧数据
+**修复**：openid 绑定切换，旧行解绑，不删字段
+
+### TASK-022 500 Internal Server Error + 重复插入 ✅
+**问题 1**：openid 唯一约束冲突（两个对象同时持有）
+**修复**：openid="" + db.flush() 两步法
+
+**问题 2**：GET /me 每次创建空行
+**修复**：/me 只查不创，不存在返回空
+
+### TASK-023 管理员编辑密码不哈希 ✅
+**问题**：密码字段直接写入 password_hash，未 bcrypt 处理
+**修复**：update_user 和 update_self 增加密码拦截 → pwd_context.hash()
+
+### TASK-024 审核管理页空列表 ✅
+**问题**：res.data.items 取值路径错误（少一层 data 嵌套）
+**修复**：兼容 body.data?.items ?? body.items ?? []
+
+### TASK-025 小程序连接失败无提示 ✅
+**问题**：首页 catch 无提示，用户只能看到空白
+**修复**：console.error + Toast "网络异常，请检查服务器"
+
+---
+
+## 阶段五：文档与规范化
+
+### TASK-026 系统设计文档 ✅
+- 创建 docs/系统设计与实践文档.md
+- 10 章完整内容：概述、架构、技术栈、数据库、后端实现、管理后台、小程序、AI 交互、安全、踩坑记录
+- 更新 .trae/specs/ 四份文档与当前项目状态对齐
+
+---
+
+## 当前状态总结
+
+### 已完成
+| 模块 | 状态 |
+|------|------|
+| 后端全部 12 个路由模块 | ✅ 已完成 |
+| 数据库 14 张表 | ✅ 已完成 |
+| 管理后台 9 个页面 | ✅ 已完成 |
+| 小程序 12 个页面 | ✅ 已完成 |
+| 用户注册/登录/密码系统 | ✅ 已完成 |
+| 图片审核系统 | ✅ 已完成 |
+| 仪表盘统计 | ✅ 已完成 |
+| JWT 安全加固 | ✅ 已完成 |
+| TypeScript 编译 | ✅ 零错误 |
+| 系统文档 | ✅ 已完成 |
+
+### 待优化（未来迭代）
+| 项目 | 说明 |
+|------|------|
+| 微信登录 | 接入 wx.login 获取真实 openid |
+| Token 刷新 | refresh_token 机制 |
+| 接口限流 | Rate Limiting |
+| 图片审核手动模式 | 部分场景改为管理员人工审核 |
+| 消息推送 | 活动通知、反馈处理通知 |
+| 数据导出 | Excel/CSV 导出 |
+| 小程序主题适配 | 夜间模式 |
+| E2E 测试 | Playwright/Cypress |

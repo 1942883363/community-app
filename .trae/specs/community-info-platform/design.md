@@ -3,47 +3,46 @@
 ## 1. 系统架构
 
 ```
-┌──────────────────────────────────────────────────────┐
-│                    客户端层                           │
-│  ┌──────────────────┐  ┌──────────────────────────┐  │
-│  │ 微信小程序 (用户)  │  │ React 管理后台 (管理员)    │  │
-│  └────────┬─────────┘  └───────────┬──────────────┘  │
-│           │         HTTPS           │                  │
-├───────────┼─────────────────────────┼──────────────────┤
-│           ▼                         ▼                  │
-│  ┌─────────────────────────────────────────────────┐  │
-│  │              FastAPI 后端服务                     │  │
-│  │  ┌─────────┐ ┌──────────┐ ┌──────────────────┐  │  │
-│  │  │ REST API │ │ JWT Auth │ │ Static Files     │  │  │
-│  │  └────┬─────┘ └────┬─────┘ │ (uploads/)       │  │  │
-│  │       │            │       └──────────────────┘  │  │
-│  │  ┌────▼────────────▼───────────┬──────────────┐  │  │
-│  │  │       业务逻辑层             │              │  │  │
-│  │  │  sanitize_html (XSS防护)    │              │  │  │
-│  │  │  get_or_create_user (用户)  │              │  │  │
-│  │  └────────────────────┬───────────────────────┘  │  │
-│  │                       │                           │  │
-│  │  ┌────────────────────▼───────────────────────┐  │  │
-│  │  │        数据访问层 (SQLAlchemy ORM)           │  │  │
-│  │  └────────────────────┬───────────────────────┘  │  │
-│  └───────────────────────┼───────────────────────────┘  │
-│                          │                               │
-├──────────────────────────┼───────────────────────────────┤
-│                          ▼                               │
-│               ┌──────────────────┐                       │
-│               │    MySQL 8.0     │                       │
-│               │  community_db    │                       │
-│               │  13 张表         │                       │
-│               └──────────────────┘                       │
-│                                                          │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │          TRAE Skill: bus-metro-query              │   │
-│  │          ┌──────────────────────┐                 │   │
-│  │          │   高德地图公交 API    │                 │   │
-│  │          └──────────────────────┘                 │   │
-│  └──────────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────┐     ┌──────────────────────┐
+│   管理后台 (React)    │     │   小程序 (微信原生)    │
+│   admin-frontend/    │     │   miniprogram/       │
+│   port 5173 (dev)    │     │   wechat devtools    │
+└──────────┬───────────┘     └──────────┬───────────┘
+           │ HTTP/REST                   │ HTTP/REST
+           │ Bearer Token (JWT)          │ X-User-Id Header
+           ▼                             ▼
+┌─────────────────────────────────────────────────────┐
+│               FastAPI 后端 (Python 3.13)             │
+│                   backend/                          │
+│               port 8000                             │
+│                                                     │
+│  ┌──────────────────────────┐  ┌──────────┐             │
+│  │       Routers (接口)      │  │  Utils   │             │
+│  │      12 个路由模块        │  │ JWT/Auth │             │
+│  │    ── 调用/依赖 ──        │  │ BCrypt   │             │
+│  │  ┌─────────┐ ┌─────────┐ │  │ Password │             │
+│  │  │ Models  │ │ Schemas │ │  │ Response │             │
+│  │  │ (14表)  │ │ Pydantic│ │  └──────────┘             │
+│  │  └────┬────┘ └─────────┘ │                          │
+│  └───────┼──────────────────┘                          │
+│          │                                             │
+│          ▼                                             │
+│     ┌──────────┐                                       │
+│     │ SQLAlchemy│                                      │
+│     │    ORM    │                                      │
+│     └────┬─────┘                                       │
+└─────────────┼──────────────────────────────────────┘
+              │
+              ▼
+     ┌────────────────┐
+     │   MySQL 8.0    │
+     │  community_db  │
+     └────────────────┘
 ```
+
+**请求流程**：
+- 管理后台 → `POST /api/auth/login` 获取 JWT Token → 后续请求携带 `Authorization: Bearer <token>` → `get_current_user` 依赖注入验证
+- 小程序 → 首次启动 `wx.getStorageSync('openid')` 生成设备唯一标识 → 后续请求携带 `X-User-Id` Header → 后端按 `openid` 查找用户
 
 ---
 
@@ -52,604 +51,377 @@
 ```
 community-info-platform/
 ├── backend/                         # FastAPI 后端
-│   ├── main.py                      # 应用入口 & 全局异常处理
-│   ├── config.py                    # 配置管理（含 AMAP_API_KEY）
+│   ├── main.py                      # 应用入口（CORS + 静态文件 + 全局异常 + 12路由注册）
+│   ├── config.py                    # pydantic-settings 配置管理
 │   ├── .env                         # 敏感配置（不入仓库）
-│   ├── .env.example                 # 配置模板
+│   ├── database.py                  # SQLAlchemy 引擎 & Session & get_db()
 │   ├── requirements.txt             # Python 依赖
-│   ├── database.py                  # SQLAlchemy 引擎 & Session
-│   ├── seed.py                      # 种子数据（管理员 + 分类）
-│   ├── seed_cuit.py                 # 成信大周边测试数据
-│   ├── models/                      # SQLAlchemy 模型（13 张表）
-│   │   ├── __init__.py
-│   │   ├── user.py                  # 统一用户表（NEW）
-│   │   ├── admin.py                 # 管理员用户
-│   │   ├── category.py              # 资讯分类
-│   │   ├── news.py                  # 资讯 + 点赞
-│   │   ├── feedback.py              # 意见反馈
-│   │   ├── phone.py                 # 电话簿
-│   │   ├── event.py                 # 活动 + 报名
-│   │   ├── business.py              # 商家 + 分类
-│   │   └── image.py                 # 图片附件（NEW）
+│   ├── models/                      # SQLAlchemy 模型（14 张表）
+│   │   ├── admin.py                 # AdminUser (admin_users)
+│   │   ├── user.py                  # User (users) — openid+phone+password_hash
+│   │   ├── category.py              # Category (categories)
+│   │   ├── news.py                  # News + NewsLike (news, news_likes)
+│   │   ├── feedback.py              # Feedback (feedback)
+│   │   ├── phone.py                 # PhoneCategory + PhoneEntry
+│   │   ├── event.py                 # Event + Registration
+│   │   ├── business.py              # BusinessCategory + Business
+│   │   ├── image_review.py          # ImageReview (image_reviews)
+│   │   ├── image.py                 # Image (images)
+│   │   └── image_review.py          # ImageReview (image_reviews)
 │   ├── schemas/                     # Pydantic 请求/响应模型
-│   │   ├── __init__.py
-│   │   ├── common.py
-│   │   ├── auth.py
-│   │   ├── category.py
-│   │   ├── news.py
-│   │   ├── feedback.py
-│   │   ├── phone.py
-│   │   ├── event.py
-│   │   └── business.py
-│   ├── routers/                     # API 路由层
-│   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   ├── category.py
-│   │   ├── news.py
-│   │   ├── feedback.py
-│   │   ├── phone.py
-│   │   ├── event.py
-│   │   ├── business.py
-│   │   ├── upload.py
-│   │   └── transit.py
+│   │   ├── auth.py                  # LoginRequest / TokenResponse / UserInfo
+│   │   ├── category.py              # CategoryCreate / Update / Response
+│   │   ├── news.py                  # NewsCreate / Update / Response / ListItem
+│   │   ├── feedback.py              # FeedbackCreate / Update / Response
+│   │   ├── phone.py                 # PhoneCategory + PhoneEntry schemas
+│   │   ├── event.py                 # EventCreate / Update / Response
+│   │   ├── business.py              # BusinessCategory + Business schemas
+│   │   └── user.py                  # UserRegister / Login / Update / Response / UpdateSelf
+│   ├── routers/                     # API 路由层（12 个模块）
+│   │   ├── auth.py                  # POST /login + GET /me + get_current_user 依赖注入
+│   │   ├── category.py              # 分类 CRUD
+│   │   ├── news.py                  # 资讯 CRUD + 点赞 + 公开列表
+│   │   ├── feedback.py              # 反馈 CRUD + 状态管理
+│   │   ├── phone.py                 # 电话簿分类+条目 CRUD
+│   │   ├── event.py                 # 活动 CRUD + 报名
+│   │   ├── business.py              # 商家分类+商家 CRUD
+│   │   ├── transit.py               # 公交查询代理（高德 API）
+│   │   ├── upload.py                # 文件上传 + create_image_review / is_image_approved 公共函数
+│   │   ├── user.py                  # 用户注册/登录/退出/个人信息+后台CRUD
+│   │   ├── review.py                # 图片审核列表+通过+拒绝+查询
+│   │   └── dashboard.py             # GET /stats 六维度统计
 │   ├── utils/                       # 工具函数
-│   │   ├── auth.py                  # JWT + bcrypt 密码
-│   │   ├── response.py              # 统一响应格式
-│   │   ├── sanitize.py              # XSS 防护过滤（NEW）
-│   │   └── user_service.py          # 用户注册/查询（NEW）
+│   │   ├── auth.py                  # JWT 签发/验证 + bcrypt 密码哈希/验证
+│   │   ├── password.py              # passlib CryptContext (bcrypt)
+│   │   └── response.py              # 统一响应格式 (success/error/paginated)
 │   ├── sql/
-│   │   └── init.sql                 # 完整 DDL 建表脚本
+│   │   └── init.sql                 # 完整 DDL 建表脚本（14 张表）
 │   └── uploads/
-│       └── images/
+│       └── images/                  # 用户上传图片存储目录
 │
 ├── admin-frontend/                  # React 管理后台
 │   ├── package.json
-│   ├── vite.config.ts               # Vite 配置（/api 代理）
-│   ├── index.html
+│   ├── vite.config.ts               # Vite 配置
 │   ├── src/
 │   │   ├── main.tsx
-│   │   ├── App.tsx                  # 路由配置 + AuthGuard
-│   │   ├── api/
-│   │   │   ├── request.ts           # Axios 实例 & Token 拦截
-│   │   │   ├── auth.ts              # 登录/当前用户
-│   │   │   ├── news.ts              # 资讯 + 分类 API
-│   │   │   ├── feedback.ts          # 反馈 API
-│   │   │   ├── phone.ts             # 电话簿 API
-│   │   │   ├── event.ts             # 活动 API
-│   │   │   └── business.ts          # 商家 API
-│   │   ├── pages/
-│   │   │   ├── Login/
-│   │   │   ├── Dashboard/
-│   │   │   ├── News/
-│   │   │   │   ├── CategoryManage.tsx
-│   │   │   │   ├── NewsList.tsx
-│   │   │   │   └── NewsEdit.tsx
-│   │   │   ├── Feedback/
-│   │   │   ├── Phone/
-│   │   │   ├── Event/
-│   │   │   └── Business/
+│   │   ├── App.tsx                  # 路由配置 + AuthGuard（三态：loading/authenticated/unauthenticated）
+│   │   ├── api/                     # API 请求封装
+│   │   │   ├── request.ts           # axios 实例 + Token 拦截 + 401 拦截 + uploadFile
+│   │   │   ├── auth.ts              # 管理员登录/个人信息
+│   │   │   ├── dashboard.ts         # 仪表盘统计
+│   │   │   ├── category.ts          # 分类 CRUD
+│   │   │   ├── news.ts              # 资讯 CRUD
+│   │   │   ├── feedback.ts          # 反馈 CRUD
+│   │   │   ├── phone.ts             # 电话簿 CRUD
+│   │   │   ├── event.ts             # 活动 CRUD
+│   │   │   ├── business.ts          # 商家 CRUD
+│   │   │   ├── user.ts              # 用户 CRUD
+│   │   │   └── review.ts            # 图片审核
+│   │   ├── pages/                   # 页面组件
+│   │   │   ├── Login/               # 登录页
+│   │   │   ├── Dashboard/           # 仪表盘（六维度统计卡片）
+│   │   │   ├── News/                # 资讯管理（CategoryManage + NewsList + NewsEdit）
+│   │   │   ├── Feedback/            # 反馈工单管理
+│   │   │   ├── Phone/               # 电话簿管理
+│   │   │   ├── Event/               # 活动管理
+│   │   │   ├── Business/            # 商家管理
+│   │   │   ├── User/                # 用户管理（含密码编辑）
+│   │   │   └── Review/              # 图片审核
 │   │   ├── components/
-│   │   │   └── Layout/
+│   │   │   └── Layout/              # 主布局（侧边栏+顶栏）
 │   │   ├── stores/
-│   │   │   └── auth.tsx             # AuthContext
+│   │   │   └── auth.tsx             # AuthProvider + useAuth（React Context）
 │   │   └── types/
-│   │       └── index.ts
+│   │       └── index.ts             # 公共类型定义
 │   └── tsconfig.json
 │
 ├── miniprogram/                     # 微信小程序
-│   ├── app.json
-│   ├── app.js
-│   ├── app.wxss
-│   ├── project.config.json
+│   ├── app.json                     # 页面注册 + TabBar + 权限声明
+│   ├── app.js                       # App 入口（全局数据初始化）
+│   ├── app.wxss                     # 全局样式
 │   ├── utils/
-│   │   ├── request.js               # wx.request Promise 封装
-│   │   └── config.js                # BASE_URL（IP:8000）
+│   │   ├── request.js               # wx.request Promise 封装 + getUserId + resolveImage
+│   │   └── config.js                # API_BASE_URL + STATIC_BASE
 │   └── pages/
-│       ├── index/                   # 首页
+│       ├── index/                   # 首页（轮播 + 分类入口 + 最新资讯）
 │       ├── news/                    # 资讯列表
-│       ├── news-detail/             # 资讯详情
-│       ├── phone/                   # 电话簿
+│       ├── news-detail/             # 资讯详情 + 点赞
+│       ├── phone/                   # 便民电话
 │       ├── event/                   # 活动列表
 │       ├── event-detail/            # 活动详情 + 报名
-│       ├── business/                # 周边商家
+│       ├── business/                # 周边商家列表
 │       ├── business-detail/         # 商家详情
 │       ├── transit/                 # 公交查询
-│       ├── feedback/                # 意见反馈
-│       └── mine/                    # 个人中心
+│       ├── feedback/                # 意见反馈提交
+│       ├── mine/                    # 个人中心
+│       └── login/                   # 注册/登录（含密码输入）
+│
+├── docs/
+│   └── 系统设计与实践文档.md          # 详细系统设计与 AI 交互记录
 │
 └── .trae/
+    ├── specs/
+    │   └── community-info-platform/  # 本目录
+    │       ├── spec.md              # 需求规格说明书
+    │       ├── design.md            # 设计文档
+    │       ├── checklist.md         # 验证清单
+    │       └── tasks.md             # 开发任务记录
     └── skills/
         └── bus-metro-query/         # 公交查询 Skill
-            ├── skill.yaml
-            └── handler.py
 ```
 
 ---
 
 ## 3. 数据库设计
 
-### 3.1 数据库连接配置
+### 3.1 表结构总览（14 张表）
 
-```ini
-# backend/.env
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=community_db
-SECRET_KEY=your-secret-key-change-in-production
-AMAP_API_KEY=your_amap_web_api_key
-```
-
-### 3.2 ER 图（文字描述 — v2 修复版）
-
-```
-                        ┌─────────────┐
-                        │    users    │•••••••••••••••••••••••••••••••••••••┐
-                        │ (统一用户表) │                                     │
-                        └──────┬──────┘                                     │
-               ┌───────────────┼──────────────────────────────┐              │
-               │               │                              │              │
-          ┌────▼─────┐   ┌─────▼──────┐   ┌───────────┐      │              │
-          │ feedback │   │ news_likes │   │registration│      │              │
-          │(意见反馈)│   │ (点赞记录) │   │ (活动报名) │      │              │
-          └────┬─────┘   └─────┬──────┘   └─────┬─────┘      │              │
-               │               │                │            │              │
-┌──────────┐   │          ┌────▼────┐      ┌────▼─────┐      │              │
-│  admin   │   │          │  news   │      │  events  │      │              │
-│  users   │◄──┘          │ (资讯)  │      │ (活动)   │      │              │
-└──────────┘              └────┬────┘      └──────────┘      │              │
-                               │                             │              │
-                          ┌────▼──────┐                      │              │
-                          │ categories│                      │              │
-                          │(资讯分类) │                      │              │
-                          └──────────┘                      │              │
-                                                            │              │
-┌────────────────┐     ┌──────────────────┐                 │              │
-│ phone_entries  │────►│ phone_categories │                 │              │
-│  (电话条目)    │     │  (电话簿分类)    │                 │              │
-└────────────────┘     └──────────────────┘                 │              │
-                                                            │              │
-┌─────────┐     ┌──────────────────┐                        │              │
-│businesses│────►│business_categories│                       │              │
-│ (商家)   │    │  (商家分类)       │                       │              │
-└────┬─────┘    └──────────────────┘                       │              │
-     │                                                     │              │
-     └─────────── 图片关联 ──────────┐                      │              │
-                                    ▼                      │              │
-                            ┌─────────────────┐            │              │
-                            │image_attachments│◄───────────┘              │
-                            │  (图片附件表)   │                           │
-                            └─────────────────┘                           │
-```
-
-**13 张表总览：**
-
-| # | 表名 | 说明 | 关键变更 |
+| # | 表名 | 说明 | 关键字段 |
 |---|------|------|----------|
-| 1 | `admin_users` | 管理员用户 | password → password_hash；INT → BIGINT |
-| 2 | `users` | 统一用户表 | **NEW** — 修复身份混淆 |
-| 3 | `categories` | 资讯分类 | INT → BIGINT |
-| 4 | `news` | 资讯 | added idx_category_status_published 复合索引 |
-| 5 | `news_likes` | 点赞记录 | user_id BIGINT FK → users |
-| 6 | `feedback` | 意见反馈 | user_id BF FK；images VARCHAR 替代 JSON；增加 title/reply |
-| 7 | `phone_categories` | 电话簿分类 | 移除 icon |
-| 8 | `phone_entries` | 电话条目 | phone_number → phone；增加 address/description |
-| 9 | `events` | 社区活动 | **移除 enrolled_count**（防超卖）；location→address；start/end_time→event_date/event_time |
-| 10 | `registrations` | 活动报名 | user_id BF FK；user_name/user_phone/remark 替换冗余字段；**取消=DELETE** |
-| 11 | `business_categories` | 商家分类 | — |
-| 12 | `businesses` | 商家 | 移除 JSON images 和 lon/lat；增加 logo/business_hours |
-| 13 | `image_attachments` | 图片附件 | **NEW** — 多态关联替代 JSON 字段 |
+| 1 | `admin_users` | 管理员用户 | id, username(UNIQUE), password_hash, nickname, role |
+| 2 | `users` | 小程序用户 | id, openid(UNIQUE), nickname, phone, password_hash, avatar |
+| 3 | `categories` | 资讯分类 | id, name, sort_order |
+| 4 | `news` | 资讯 | id, title, content, cover_image, category_id(FK), is_top, view_count, status |
+| 5 | `news_likes` | 点赞记录 | id, news_id(FK), user_id(FK), UNIQUE(news_id,user_id) |
+| 6 | `feedback` | 意见反馈 | id, user_id(FK), content, images, contact, status, reply |
+| 7 | `phone_categories` | 电话分类 | id, name, icon, sort_order |
+| 8 | `phone_entries` | 电话条目 | id, category_id(FK), name, phone, sort_order |
+| 9 | `events` | 社区活动 | id, title, cover_image, content, address, event_date, event_time, max_participants, status |
+| 10 | `registrations` | 活动报名 | id, event_id(FK), user_id(FK), UNIQUE(event_id,user_id) |
+| 11 | `business_categories` | 商家分类 | id, name, icon, sort_order |
+| 12 | `businesses` | 商家 | id, category_id(FK), name, logo, address, phone, description, business_hours, sort_order, status |
+| 13 | `image_reviews` | 图片审核 | id, owner_type, owner_id, url, status(0/1/2), reviewer_id, reject_reason |
+| 14 | `images` | 图片附件 | id, url, source_type, source_id |
 
-### 3.3 建表 DDL（v2 修复版）
+### 3.2 ER 图
 
-```sql
-CREATE DATABASE IF NOT EXISTS community_db
-    DEFAULT CHARACTER SET utf8mb4
-    DEFAULT COLLATE utf8mb4_unicode_ci;
-
-USE community_db;
-
-DROP TABLE IF EXISTS image_attachments;
-DROP TABLE IF EXISTS registrations;
-DROP TABLE IF EXISTS events;
-DROP TABLE IF EXISTS businesses;
-DROP TABLE IF EXISTS business_categories;
-DROP TABLE IF EXISTS phone_entries;
-DROP TABLE IF EXISTS phone_categories;
-DROP TABLE IF EXISTS feedback;
-DROP TABLE IF EXISTS news_likes;
-DROP TABLE IF EXISTS news;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS admin_users;
-DROP TABLE IF EXISTS users;
-
--- ============================================
--- 1. 管理员用户表
--- ============================================
-CREATE TABLE admin_users (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username       VARCHAR(50)  NOT NULL UNIQUE,
-    password_hash  VARCHAR(255) NOT NULL,
-    nickname       VARCHAR(50)  DEFAULT '',
-    avatar         VARCHAR(500) DEFAULT '',
-    created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 2. 统一用户表（修复身份混淆漏洞）
--- ============================================
-CREATE TABLE users (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    openid      VARCHAR(100) NOT NULL UNIQUE  COMMENT '微信OpenID或设备唯一标识',
-    nickname    VARCHAR(50)  DEFAULT '',
-    phone       VARCHAR(20)  DEFAULT '',
-    avatar      VARCHAR(500) DEFAULT '',
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_openid (openid)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 3. 资讯分类表（支持两级层级）
--- ============================================
-CREATE TABLE categories (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(50) NOT NULL,
-    parent_id   BIGINT      DEFAULT NULL,
-    sort_order  INT         DEFAULT 0,
-    created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 4. 资讯表（修复复合索引缺失）
--- ============================================
-CREATE TABLE news (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    title         VARCHAR(200) NOT NULL,
-    content       TEXT         NOT NULL,
-    summary       VARCHAR(500) DEFAULT '',
-    cover_image   VARCHAR(500) DEFAULT '',
-    category_id   BIGINT       NOT NULL,
-    status        TINYINT      DEFAULT 1    COMMENT '0:草稿 1:已发布 2:已下架',
-    is_top        TINYINT      DEFAULT 0,
-    view_count    INT          DEFAULT 0,
-    like_count    INT          DEFAULT 0,
-    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id),
-    INDEX idx_category_id (category_id),
-    INDEX idx_status (status),
-    INDEX idx_category_status_published (category_id, status, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 5. 资讯点赞记录表（user_id FK → users.id）
--- ============================================
-CREATE TABLE news_likes (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    news_id     BIGINT   NOT NULL,
-    user_id     BIGINT   NOT NULL  COMMENT '用户ID，关联users表',
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_news_user (news_id, user_id),
-    FOREIGN KEY (news_id) REFERENCES news(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 6. 意见反馈表（修复：user_id FK + VARCHAR 替代 JSON + title/reply）
--- ============================================
-CREATE TABLE feedback (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id     BIGINT       NOT NULL  COMMENT '用户ID，关联users表',
-    title       VARCHAR(200) NOT NULL,
-    content     TEXT         NOT NULL,
-    images      VARCHAR(2000) DEFAULT '' COMMENT '图片URL，多个用逗号分隔',
-    contact     VARCHAR(100)  DEFAULT '',
-    status      TINYINT       DEFAULT 0  COMMENT '0:待处理 1:处理中 2:已解决',
-    reply       TEXT          DEFAULT NULL,
-    handler_id  BIGINT        DEFAULT NULL,
-    handled_at  DATETIME      DEFAULT NULL,
-    created_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (handler_id) REFERENCES admin_users(id) ON DELETE SET NULL,
-    INDEX idx_user_id (user_id),
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 7. 电话簿分类表
--- ============================================
-CREATE TABLE phone_categories (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(50) NOT NULL,
-    sort_order  INT         DEFAULT 0,
-    created_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 8. 电话条目表
--- ============================================
-CREATE TABLE phone_entries (
-    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-    category_id   BIGINT       NOT NULL,
-    name          VARCHAR(100) NOT NULL,
-    phone         VARCHAR(30)  NOT NULL,
-    address       VARCHAR(200) DEFAULT '',
-    description   VARCHAR(500) DEFAULT '',
-    sort_order    INT          DEFAULT 0,
-    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES phone_categories(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 9. 社区活动表（修复：移除 enrolled_count 防超卖）
--- ============================================
-CREATE TABLE events (
-    id                BIGINT AUTO_INCREMENT PRIMARY KEY,
-    title             VARCHAR(200) NOT NULL,
-    content           TEXT         NOT NULL,
-    cover_image       VARCHAR(500) DEFAULT '',
-    event_date        DATE         NOT NULL,
-    event_time        VARCHAR(20)  DEFAULT '',
-    address           VARCHAR(200) DEFAULT '',
-    max_participants  INT          DEFAULT 0  COMMENT '0表示不限人数',
-    status            TINYINT      DEFAULT 1  COMMENT '0:草稿 1:报名中 2:进行中 3:已结束',
-    created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 10. 活动报名记录表（修复：user_id FK + 取消=DELETE）
--- ============================================
-CREATE TABLE registrations (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id    BIGINT       NOT NULL,
-    user_id     BIGINT       NOT NULL  COMMENT '用户ID，关联users表',
-    user_name   VARCHAR(50)  DEFAULT '',
-    user_phone  VARCHAR(30)  DEFAULT '',
-    remark      VARCHAR(500) DEFAULT '',
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uk_event_user (event_id, user_id),
-    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_event_id (event_id),
-    INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 11. 商家分类表
--- ============================================
-CREATE TABLE business_categories (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name        VARCHAR(50)  NOT NULL,
-    icon        VARCHAR(200) DEFAULT '',
-    sort_order  INT          DEFAULT 0,
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 12. 商家表（修复：移除 JSON images 和 lon/lat）
--- ============================================
-CREATE TABLE businesses (
-    id              BIGINT AUTO_INCREMENT PRIMARY KEY,
-    category_id     BIGINT       NOT NULL,
-    name            VARCHAR(100) NOT NULL,
-    logo            VARCHAR(500) DEFAULT '',
-    description     TEXT         DEFAULT NULL,
-    address         VARCHAR(200) DEFAULT '',
-    phone           VARCHAR(30)  DEFAULT '',
-    business_hours  VARCHAR(200) DEFAULT '',
-    sort_order      INT          DEFAULT 0,
-    status          TINYINT      DEFAULT 1,
-    created_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES business_categories(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ============================================
--- 13. 图片附件关联表（修复：替代 JSON 字段，支持多态关联）
--- ============================================
-CREATE TABLE image_attachments (
-    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
-    owner_type  VARCHAR(30)  NOT NULL  COMMENT '所属对象类型: business/feedback/news/event',
-    owner_id    BIGINT       NOT NULL  COMMENT '所属对象ID',
-    url         VARCHAR(500) NOT NULL  COMMENT '图片URL',
-    sort_order  INT          DEFAULT 0,
-    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_owner (owner_type, owner_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
+┌──────────────┐
+│  admin_users │  (JWT 鉴权 — 管理员)
+└──────┬───────┘
+       │ reviewer_id
+       ▼
+┌──────────────┐      ┌──────────────┐
+│image_reviews │      │    users     │
+│  (图片审核)  │      │ (小程序用户)  │
+└──────────────┘      └──────┬───────┘
+               ┌─────────────┼──────────────────┐
+               │             │                  │
+          ┌────▼────┐  ┌─────▼─────┐  ┌────────▼───────┐
+          │feedback │  │news_likes │  │  registrations │
+          │(反馈)   │  │ (点赞)    │  │   (报名)       │
+          └─────────┘  └─────┬─────┘  └────────┬───────┘
+                             │                 │
+                        ┌────▼────┐       ┌────▼─────┐
+                        │  news   │       │  events  │
+                        │ (资讯)  │       │ (活动)   │
+                        └────┬────┘       └──────────┘
+                             │
+                        ┌────▼──────┐
+                        │categories │
+                        │(资讯分类) │
+                        └──────────┘
+
+┌──────────────┐     ┌──────────────────┐
+│phone_entries │────►│ phone_categories │
+│ (电话条目)   │     │  (电话簿分类)    │
+└──────────────┘     └──────────────────┘
+
+┌──────────┐     ┌────────────────────┐
+│businesses│────►│business_categories │
+│ (商家)   │     │   (商家分类)       │
+└──────────┘     └────────────────────┘
+```
+
+### 3.3 关键设计决策
+
+**用户表 `openid` 设计**：
+- `openid` 为 VARCHAR(100) UNIQUE，客户端生成 UUID 存储
+- 注册：创建新行，如果当前 openid 已有注册用户则解绑旧行（openid=""）
+- 登录：按手机号查找 → 验证密码 → 绑定 openid 到目标行
+- 退出：openid="" 解绑，数据保留
+- GET /me：只查不创，不存在返回 `is_registered=false`
+
+**图片审核 `owner_type` 枚举**：
+| 值 | 对应业务 | auto_approve |
+|----|---------|-------------|
+| `admin_upload` | 管理后台上传 | true |
+| `user_avatar` | 小程序用户头像 | true |
+| `news_cover` | 资讯封面 | true |
+| `business_logo` | 商家 Logo | true |
+| `event_cover` | 活动封面 | true |
 
 ---
 
-## 4. API 接口设计（v2 修复版）
+## 4. API 接口设计
 
 ### 4.1 接口规范
 - 基础路径: `/api`
-- 鉴权方式: `Authorization: Bearer <token>`（管理端）；`X-User-Id` 请求头（用户端）
+- 鉴权方式: `Authorization: Bearer <token>`（管理端）；`X-User-Id` 请求头（小程序端）
 - 响应格式: `{"code": 200, "message": "success", "data": ...}`
 - 分页格式: `{"code": 200, "data": {"items": [...], "total": N, "page": 1, "page_size": 20}}`
-- 用户标识: 小程序端通过 `X-User-Id` 请求头传递设备唯一 ID → 服务端 `get_or_create_user()` 自动创建/匹配 users 表
+- 注意：业务错误（404/400/409）也返回 HTTP 200，错误码在 `code` 字段
 
 ### 4.2 认证接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| POST | `/api/auth/login` | 否 | 管理员登录，返回 `access_token` + `token_type` |
-| GET  | `/api/auth/me` | 是 | 获取当前管理员信息 |
+| POST | `/api/auth/login` | 否 | 管理员登录，返回 access_token + token_type |
+| GET | `/api/auth/me` | JWT | 获取当前管理员信息 |
 
-### 4.3 资讯分类接口
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET   | `/api/categories` | 否 | 获取分类列表（树形结构，支持两级） |
-| POST  | `/api/categories` | 是 | 创建分类 |
-| PUT   | `/api/categories/{id}` | 是 | 更新分类 |
-| DELETE| `/api/categories/{id}` | 是 | 删除分类（有子分类或关联资讯时拒绝） |
-
-### 4.4 资讯接口
+### 4.3 仪表盘接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| GET    | `/api/news` | 否 | 小程序端资讯列表（分页 + category_id/status 筛选） |
-| GET    | `/api/news/{id}` | 否 | 资讯详情（view_count 自增） |
-| POST   | `/api/news` | 是 | 发布资讯（content 经 sanitize_html 过滤） |
-| PUT    | `/api/news/{id}` | 是 | 编辑资讯 |
-| DELETE | `/api/news/{id}` | 是 | 删除资讯（级联删除点赞记录） |
-| POST   | `/api/news/{id}/like` | 否 | 点赞/取消点赞（X-User-Id 标识） |
-| GET    | `/api/news/{id}/like-status` | 否 | 查询用户对该资讯的点赞状态 |
+| GET | `/api/dashboard/stats` | JWT | 返回 news/feedback/phone/event/business/user 六维度统计 |
 
-### 4.5 反馈接口
+### 4.4 资讯分类接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| POST | `/api/feedback` | 否 | 提交反馈（支持图片上传，X-User-Id 标识用户） |
-| GET  | `/api/feedback` | 是 | 工单列表（分页 + status 筛选） |
-| GET  | `/api/feedback/{id}` | 是 | 工单详情 |
-| PUT  | `/api/feedback/{id}/status` | 是 | 更新工单状态 + 回复（流转：待处理→处理中→已解决） |
-| GET  | `/api/feedback/my` | 否 | 我的反馈记录（X-User-Id） |
+| GET | `/api/categories` | 公开 | 获取分类列表 |
+| POST | `/api/categories` | JWT | 创建分类 |
+| PUT | `/api/categories/{id}` | JWT | 更新分类 |
+| DELETE | `/api/categories/{id}` | JWT | 删除分类 |
 
-### 4.6 电话簿接口
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET    | `/api/phone-categories` | 否 | 电话簿分类列表 |
-| POST   | `/api/phone-categories` | 是 | 创建分类 |
-| PUT    | `/api/phone-categories/{id}` | 是 | 更新分类 |
-| DELETE | `/api/phone-categories/{id}` | 是 | 删除分类（级联删除条目） |
-| GET    | `/api/phone-entries` | 否 | 电话条目列表（category_id 筛选） |
-| POST   | `/api/phone-entries` | 是 | 创建条目 |
-| PUT    | `/api/phone-entries/{id}` | 是 | 更新条目 |
-| DELETE | `/api/phone-entries/{id}` | 是 | 删除条目 |
-
-### 4.7 活动接口（v2 修复版）
+### 4.5 资讯接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| GET    | `/api/events` | 否 | 活动列表（分页，enrolled_count 由 COUNT(registrations) 实时计算） |
-| GET    | `/api/events/{id}` | 否 | 活动详情 |
-| GET    | `/api/events/my` | 否 | 我的报名记录（X-User-Id） |
-| POST   | `/api/events` | 是 | 发布活动 |
-| PUT    | `/api/events/{id}` | 是 | 编辑活动 |
-| DELETE | `/api/events/{id}` | 是 | 删除活动（级联删除报名记录） |
-| POST   | `/api/events/{id}/register` | 否 | **活动报名** — SELECT FOR UPDATE 行锁 + COUNT 防超卖 |
-| POST   | `/api/events/{id}/cancel` | 否 | **取消报名** — 直接 DELETE 记录（可重新报名） |
-| GET    | `/api/events/{id}/registrations` | 是 | 查看报名记录列表 |
+| GET | `/api/news` | 公开 | 列表（分页 + category_id/status 筛选） |
+| GET | `/api/news/{id}` | 公开 | 详情（view_count 自增） |
+| POST | `/api/news` | JWT | 发布（含封面审核记录） |
+| PUT | `/api/news/{id}` | JWT | 编辑 |
+| DELETE | `/api/news/{id}` | JWT | 删除 |
+| PUT | `/api/news/{id}/top` | JWT | 置顶/取消置顶 |
+| POST | `/api/news/{id}/like` | X-User-Id | 点赞/取消点赞 |
+| GET | `/api/news/{id}/like-status` | X-User-Id | 查询点赞状态 |
 
-### 4.8 商家接口
-
-| 方法 | 路径 | 鉴权 | 说明 |
-|------|------|------|------|
-| GET    | `/api/business-categories` | 否 | 商家分类列表 |
-| POST   | `/api/business-categories` | 是 | 创建分类 |
-| PUT    | `/api/business-categories/{id}` | 是 | 更新分类 |
-| DELETE | `/api/business-categories/{id}` | 是 | 删除分类（级联删除商家） |
-| GET    | `/api/businesses` | 否 | 商家列表（category_id 筛选） |
-| GET    | `/api/businesses/{id}` | 否 | 商家详情 |
-| POST   | `/api/businesses` | 是 | 创建商家 |
-| PUT    | `/api/businesses/{id}` | 是 | 更新商家 |
-| DELETE | `/api/businesses/{id}` | 是 | 删除商家 |
-
-### 4.9 公交查询接口（v2 扩展）
+### 4.6 反馈接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| GET | `/api/transit/nearby` | 否 | 周边公交/地铁站点（lon + lat + radius） |
-| GET | `/api/transit/arrival` | 否 | 站点实时到站信息（city + station_name） |
-| GET | `/api/transit/lines` | 否 | 公交线路查询（city + line_name） |
-| GET | `/api/transit/geocode` | 否 | 地址→经纬度 地理编码（address + city） |
+| GET | `/api/feedback` | JWT | 工单列表（分页 + status 筛选） |
+| GET | `/api/feedback/{id}` | JWT | 工单详情 |
+| POST | `/api/feedback` | X-User-Id | 提交反馈 |
+| PUT | `/api/feedback/{id}` | JWT | 更新状态/回复 |
+| DELETE | `/api/feedback/{id}` | JWT | 删除反馈 |
 
-### 4.10 文件上传接口
+### 4.7 电话簿接口
 
 | 方法 | 路径 | 鉴权 | 说明 |
 |------|------|------|------|
-| POST | `/api/upload` | 是 | 上传图片到 uploads/images/，返回 URL |
+| GET | `/api/phone-categories` | 公开 | 分类列表 |
+| POST | `/api/phone-categories` | JWT | 创建分类 |
+| PUT | `/api/phone-categories/{id}` | JWT | 更新分类 |
+| DELETE | `/api/phone-categories/{id}` | JWT | 删除分类 |
+| GET | `/api/phone-entries` | 公开 | 条目列表（category_id 筛选） |
+| POST | `/api/phone-entries` | JWT | 创建条目 |
+| PUT | `/api/phone-entries/{id}` | JWT | 更新条目 |
+| DELETE | `/api/phone-entries/{id}` | JWT | 删除条目 |
+
+### 4.8 活动接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/events` | 公开 | 活动列表（分页，enrolled_count 实时计算） |
+| GET | `/api/events/{id}` | 公开 | 活动详情 |
+| POST | `/api/events` | JWT | 发布活动（含封面审核记录） |
+| PUT | `/api/events/{id}` | JWT | 编辑活动 |
+| DELETE | `/api/events/{id}` | JWT | 删除活动（级联报名记录） |
+| POST | `/api/events/{id}/register` | X-User-Id | 报名 |
+| GET | `/api/events/{id}/registrations` | JWT | 查看报名列表 |
+
+### 4.9 商家接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/business-categories` | 公开 | 分类列表 |
+| POST | `/api/business-categories` | JWT | 创建分类 |
+| PUT | `/api/business-categories/{id}` | JWT | 更新分类 |
+| DELETE | `/api/business-categories/{id}` | JWT | 删除分类 |
+| GET | `/api/businesses` | 公开 | 商家列表（category_id 筛选，过滤未审核 logo） |
+| POST | `/api/businesses` | JWT | 创建商家（含 logo 审核记录） |
+| PUT | `/api/businesses/{id}` | JWT | 更新商家 |
+| DELETE | `/api/businesses/{id}` | JWT | 删除商家 |
+
+### 4.10 公交查询接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/transit/nearby` | 否 | 周边公交/地铁站点（lon+lat+radius） |
+| GET | `/api/transit/arrival` | 否 | 站点实时到站信息 |
+
+### 4.11 文件上传接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| POST | `/api/upload` | JWT | 管理后台上传（MIME 白名单校验，保留原始扩展名） |
+| POST | `/api/upload/public` | X-User-Id | 小程序上传（无 MIME 检查，Pillow 强制转 JPG） |
+
+### 4.12 用户接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| PUT | `/api/users/register` | X-User-Id | 注册（昵称+手机号+密码，唯一性校验） |
+| POST | `/api/users/login` | X-User-Id | 登录（手机号+密码，openid 绑定切换） |
+| POST | `/api/users/logout` | X-User-Id | 退出（openid 清空解绑） |
+| GET | `/api/users/me` | X-User-Id | 获取当前用户（不存在返回空） |
+| PUT | `/api/users/me` | X-User-Id | 修改个人资料（含密码） |
+| GET | `/api/users` | JWT | 后台用户列表（分页+搜索） |
+| GET | `/api/users/{id}` | JWT | 用户详情 |
+| PUT | `/api/users/{id}` | JWT | 编辑用户（含密码 bcrypt 哈希） |
+| DELETE | `/api/users/{id}` | JWT | 删除用户 |
+| GET | `/api/users/search` | X-User-Id | 按昵称搜索用户 |
+
+### 4.13 图片审核接口
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | `/api/reviews` | JWT | 审核列表（分页 + status 筛选） |
+| PUT | `/api/reviews/{id}/approve` | JWT | 通过（status=1） |
+| PUT | `/api/reviews/{id}/reject?reason=` | JWT | 拒绝（status=2） |
+| GET | `/api/reviews/check?url=` | 公开 | 查询图片审核状态 |
 
 ---
 
-## 5. 安全与防御层
+## 5. 安全设计
 
-### 5.1 XSS 防护（sanitize_html）
-后端在写入 `news.content` 和 `events.content` 之前，统一调用 `utils/sanitize.py`：
-- **块级清除** — 移除 `<script>` `<style>` `<iframe>` `<object>` `<embed>` 标签及其内容
-- **属性剥离** — 移除 `onerror` `onclick` 等 JS 事件处理器（含无引号写法）
-- **协议过滤** — 移除 `javascript:` 伪协议
+### 5.1 管理后台安全
 
-### 5.2 并发安全（防超卖）
-`POST /events/{id}/register` 使用 `SELECT ... FOR UPDATE` 对 events 行加悲观锁，报名期间其他请求排队等待，配合 `COUNT(registrations.id)` 实时统计已报人数。
+| 措施 | 实现 |
+|------|------|
+| 密码存储 | bcrypt 哈希（`$2b$12$...`） |
+| Token 存储 | sessionStorage（关闭标签页清除） |
+| Token 有效期 | 8 小时（jose JWT，HS256） |
+| Token 验证 | 启动时主动调用 /auth/me |
+| 接口保护 | get_current_user 依赖注入 |
+| 401 处理 | axios 拦截器 → 清除 Token → 跳转登录 |
 
-### 5.3 身份安全（用户隔离）
-`users` 表以 `openid` 唯一索引建立用户身份，所有用户操作通过 `X-User-Id` → `get_or_create_user()` → `users.id`（BIGINT FK）关联，避免直接暴露设备 ID 导致篡改风险。
+### 5.2 小程序安全
 
-### 5.4 取消报名（可重新报名）
-取消报名直接 DELETE 记录而非软删除，UNIQUE KEY `uk_event_user` 自然允许用户重新报名而不冲突。
+| 措施 | 实现 |
+|------|------|
+| 设备标识 | 客户端 UUID |
+| 用户密码 | bcrypt 哈希，登录时 pwd_context.verify() |
+| 图片审核 | 所有上传图片创建审核记录 |
+| 注册唯一性 | 手机号 UNIQUE + 昵称 UNIQUE 双重校验 |
 
----
-
-## 6. 种子数据
-
-系统首次启动时需要初始化以下数据（`python seed.py`）：
+### 5.3 密码处理
 
 ```python
-# 默认管理员账号
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"   # bcrypt 哈希存储，生产环境须修改
+# utils/auth.py — 管理员密码
+import bcrypt
+def get_password_hash(password): bcrypt.hashpw(...)
+def verify_password(plain, hashed): bcrypt.checkpw(...)
 
-# 默认资讯分类（5 个一级分类）
-DEFAULT_CATEGORIES = [
-    {"name": "社区公告", "sort_order": 1},
-    {"name": "便民服务", "sort_order": 2},
-    {"name": "活动资讯", "sort_order": 3},
-    {"name": "政策解读", "sort_order": 4},
-    {"name": "通知提醒", "sort_order": 5},
-]
-
-# 默认电话簿分类（6 个）
-DEFAULT_PHONE_CATEGORIES = [
-    {"name": "紧急求助", "sort_order": 1},
-    {"name": "物业服务", "sort_order": 2},
-    {"name": "生活服务", "sort_order": 3},
-    {"name": "政府部门", "sort_order": 4},
-    {"name": "医疗健康", "sort_order": 5},
-    {"name": "教育培训", "sort_order": 6},
-]
-
-# 默认商家分类（8 个）
-DEFAULT_BUSINESS_CATEGORIES = [
-    {"name": "餐饮美食",   "icon": "food",         "sort_order": 1},
-    {"name": "超市便利店",  "icon": "store",        "sort_order": 2},
-    {"name": "美容美发",   "icon": "beauty",        "sort_order": 3},
-    {"name": "家政服务",   "icon": "cleaning",      "sort_order": 4},
-    {"name": "维修服务",   "icon": "repair",        "sort_order": 5},
-    {"name": "药店诊所",   "icon": "pharmacy",      "sort_order": 6},
-    {"name": "教育培训",   "icon": "education",     "sort_order": 7},
-    {"name": "休闲娱乐",   "icon": "entertainment", "sort_order": 8},
-]
+# utils/password.py — 用户密码（passlib）
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ```
 
-### 6.1 演示数据（成信大周边）
+### 5.4 图片安全
 
-`python seed_cuit.py` 可额外写入 5 篇资讯 + 14 条商家 + 14 条电话，覆盖成都信息工程大学航空港校区周边生活服务信息。
-
----
-
-## 7. 变更记录（v2 vs v1）
-
-| # | 问题 | 修复方案 |
-|---|------|----------|
-| 1 | 活动报名并发超卖 | events 表移除 `enrolled_count` — 报名时 `SELECT FOR UPDATE` + `COUNT(registrations)` 实时统计 |
-| 2 | `VARCHAR user_id` 无主键、可篡改 | 新建 `users` 表（BIGINT PK + openid UNIQUE）— 全部关联表改用 BIGINT FK |
-| 3 | news 表缺 category_id 复合索引 | 添加 `INDEX idx_category_status_published (category_id, status, created_at)` |
-| 4 | 取消报名后 UNIQUE KEY 阻止再次报名 | 取消 = `DELETE` — 取消报名端点 `POST /events/{id}/cancel` |
-| 5a | 富文本无 XSS 过滤 | 新增 `utils/sanitize.py` — 块级清除 `<script>` 等 + 事件属性剥离 |
-| 5b | JSON 字段（images）查询效率低 | 新建 `image_attachments` 表 — 多态关联（owner_type + owner_id）替代 JSON |
+- 小程序上传：Pillow `.convert("RGB").save("JPEG")` 强制转 JPG（防止恶意文件伪装）
+- 管理后台上传：MIME 类型白名单 `["image/jpeg","image/png","image/gif","image/webp"]`
+- 审核系统：is_image_approved 过滤未通过图片，无记录默认放行（兼容旧数据）

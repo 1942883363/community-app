@@ -1,4 +1,5 @@
 const api = require('../../utils/request')
+const { resolveImage } = api
 
 Page({
   data: {
@@ -44,7 +45,7 @@ Page({
           id: item.id,
           title: item.title,
           summary: item.summary || '',
-          cover: item.cover_image || '',
+          cover: resolveImage(item.cover_image || ''),
           views: item.view_count || 0,
           likes: item.like_count || 0,
           created_at: item.created_at || ''
@@ -53,6 +54,9 @@ Page({
       })
       .catch(err => {
         console.error('首页加载失败:', err)
+        if (err && err.errMsg && err.errMsg.includes('fail')) {
+          wx.showToast({ title: '网络异常，请检查服务器', icon: 'none' })
+        }
         this.setData({ loading: false })
       })
   },
